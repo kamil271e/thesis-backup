@@ -1,0 +1,77 @@
+\documentclass{article}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,      
+    urlcolor=cyan
+    }
+    
+\title{%
+	A machine learning system for short-term weather prediction \\ \, \\
+	\large Draft}
+
+\begin{document}
+
+	\maketitle 
+	
+     \section{Introduction}
+	
+    \subsection{Abstract}
+	Short introduction to a problem and proposed solution.
+	\subsection{Motivation}
+	Emphasize the exponential growth of data worldwide and comparison of NWP and MLP approaches (pros and cons, supercomputers for NWP etc.) with the suggestion that machine learning methods are especially promising for future research and development.
+	\subsection{Goals}
+	Obtain sufficient results that allows to confirm thesis that Graph Neural Networks and generally machine learning approaches for weather prediction task is promising and worth developing.
+	\subsection{Scope}
+	\subsubsection{Model}
+	Propose lighter version of GraphCast architecture and compare it with other solutions such as Convolutional Neural Networks, methods based on fluid dynamics or other related to Numerical Weather Prediction approach etc.
+	\subsubsection{App}
+	Create a robust and reliable application with API that communicate with our model.
+	\subsection{Methodology}
+	Definition of Agile and description of launched habits. 
+	
+	\section{Theoretical introduction}
+	
+    \subsection{Problem introduction}
+	Theoretical introduction to a problem and mathematical concepts. 
+    \subsection{NWP}
+    \subsubsection{Navier-Stokes equation based solutions}
+    Suggest to read [1].
+	\subsection{Neural network concept}
+	Explaining architecture of dense neural networks and other types such as convolutional, recurrent, graph (depends which one eventually will be used). 
+	\subsection{Optimization algorithms}
+	Short introduction to gradient descent and backpropagation algortihms. 
+	\subsection{GraphCast}
+	Deep dive into GraphCast architecture.
+	\subsection{Model}
+	Proposed model architecture and comparision with GraphCast. 
+	
+    \section{Report and analysis}
+	\subsection{Data source and EDA}
+	Description of dataset, preprocessing, visualisation and analysis.
+	\subsection{Experiments and results}
+	Results presentation, comparision with other models/benchmark scores. 
+	\subsection{Practical details}
+	Explain training, evaluating and forecasting details and methods;
+	normalization and regularization techniques, used metrics and objectives, post processing, computation time, software and hardware stack etc.
+	
+    \section{Application}
+	
+    \subsection{Functionality}
+	\subsection{API}
+	\subsection{Data Storage and DevOps solutions}
+	
+	\section{Conclusions}
+	Limatation of proposed solution, plans for future development and conclusions.
+	
+	\section{Literature}
+	Bibliography, referenced research papers.
+    \begin{itemize}
+        \item \href{https://www.rsisinternational.org/journals/ijrsi/digital-library/volume-6-issue-8/86-90.pdf}{[1]} Celso Luis Levada, Osvaldo Missiato, Antonio Luis Ferrari, Miriam de Magalhães Oliveira Levada. \textbf{Weather Forecasting Considerations}. International Journal of Research and Scientific Innovation (IJRSI) | Volume VI, Issue VIII, August 201.
+        \item \href{https://arxiv.org/pdf/2307.03759.pdf}{[2]} Ming Jin, Huan Yee Koh, Qingsong Wen, Daniele Zambon, Cesare Alippi, Fellow, IEEE, Geoffrey I. Webb, Fellow, IEEE, Irwin King, Fellow, IEEE, Shirui Pan, Senior Member, IEEE. \textbf{A Survey on Graph Neural Networks for Time Series: Forecasting, Classification, Imputation, and Anomaly Detection}.
+        \item \href{https://arxiv.org/pdf/2212.12794.pdf}{[3]} Remi Lam, Alvaro Sanchez-Gonzalez, Matthew Willson, Peter Wirnsberger, Meire Fortunato, Ferran Alet, Suman Ravuri, Timo Ewalds, Zach Eaton-Rosen, Weihua Hu, Alexander Merose, Stephan Hoyer, George Holland, Oriol Vinyals, Jacklynn Stott, Alexander Pritzel, Shakir Mohamed and Peter Battaglia. \textbf{GraphCast: Learning skillful medium-range global weather forecasting}.
+        \item \href{https://link.springer.com/article/10.1007/s41060-022-00349-6}{[4]}
+        Stefan Bloemheuvel, Jurgen van den Hoogen, Dario Jozinovi´c, Alberto Michelini, Martin Atzmueller. \textbf{Graph neural networks for multivariate time series regression with application to seismic data} International Journal of Data Science and Analytics (2023).
+    \end{itemize}
+	
+\end{document}
+ 
