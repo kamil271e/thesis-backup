@@ -60,41 +60,11 @@ sync() {
             exit 10
         fi
     fi
-
-    unzip -o overleaf-project.zip -d overleaf-project/
-
-#     if [[ -d github-project/ ]]; then
-#         echo "No need to clone: Directory github-project already exists."
-#         echo ">> If you want to change your GitHub repo, call './wipe.sh' before executing this script."
-#     else
-#         git clone "${GIT_URL}" github-project/
-#     fi
-#
-#     pushd github-project > /dev/null
-#     git pull
-#     rm -rf *
-#     cp -rf ../overleaf-project/* .
-#     git add .
-#     git commit -m ":twisted_rightwards_arrows: Sync with Overleaf project"
-#     git push
-#     popd > /dev/null
+    unzip -o overleaf-project.zip -d ../thesis
+    rm overleaf-project.zip
+    git add .
+    git commit -m "Sync with Overleaf project"
+    echo "Ready to push !"
 }
 
-if [[ $AUTO == true ]]; then
-    updates=""
-    while true; do
-        new_updates=$(curl "https://www.overleaf.com/project/${OVERLEAF_PROJECT}/updates?min_count=5" -K base.cmdline -H "referer: https://www.overleaf.com/project/${OVERLEAF_PROJECT}" -H "cookie: overleaf_session2=${SESSION}" --compressed --silent)
-        if [[ "$updates" == "$new_updates" ]]; then
-            echo "No new updates."
-        else
-            echo "New update(s) found:"
-            echo "${new_updates}"
-            sync
-        fi
-        echo "Sleeping 60 seconds before re-fetching updates..."
-        updates=$new_updates
-        sleep 60
-    done
-else
-    sync
-fi
+sync
