@@ -3,7 +3,15 @@
 # Default configuration (override these using environment variables passed to script):
 DEFAULT_GIT_URL="git@github.com:kamil271e/thesis-backup.git"
 DEFAULT_OVERLEAF_PROJECT="6526ee300d923bdfd54986a4"
-DEFAULT_SESSION="s%3Ad5CWJWy8yn_G0qDUM9l5YCbGMBRTT4yC.HaWoBv2AP52Q0WlnU8fkf5PgtWq1SKXPyA04WHT3jmA"
+# DEFAULT_SESSION="s%3AqJInreH5vT_bJEL1kT-QKibLf_Ujz0np.ZT%2BB4joK7tIYHUMy3MZhxK%2Fn7SNCNjdxaBzgIvwvoQE"
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 <session>"
+    exit 1
+fi
+
+DEFAULT_SESSION="$1"
+echo $DEFAULT_SESSION
 
 set -e
 
