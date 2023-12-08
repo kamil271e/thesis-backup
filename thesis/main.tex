@@ -13,6 +13,9 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[OT4]{fontenc}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{subcaption}
 
 %--------------------------------------
 % Strona tytułowa
@@ -30,7 +33,7 @@
 \title{A machine learning system for short-term weather prediction}
 
 % Your supervisor comes here.
-\ppsupervisor{~dr hab.~inż.~Wojciech Kotłowski} 
+\ppsupervisor{prof. PP ~dr hab.~inż.~Wojciech Kotłowski} 
 
 % Year of final submission (not graduation!)
 \ppyear{2024}                                 
@@ -57,10 +60,16 @@
 
 %Najwygodniej jeśli każdy rozdział znajduje się w oddzielnym pliku
 \mainmatter%
-\input{chapters/01-wstep.tex}
-\input{chapters/02-teoria.tex}
-\input{chapters/03-praca-wlasna.tex}
-\input{chapters/04-zakonczenie.tex}
+\input{chapters/01-intro.tex}
+\input{chapters/02-theory.tex}
+\input{chapters/03-report.tex}
+\input{chapters/04-app.tex}
+\input{chapters/05-conclusion.tex}
+
+% \input{chapters/01-wstep.tex}
+% \input{chapters/02-teoria.tex}
+% \input{chapters/03-praca-wlasna.tex}
+% \input{chapters/04-zakonczenie.tex}
 
 %--------------------------------------
 % Literatura
@@ -72,7 +81,8 @@
 % Dodatki
 %--------------------------------------
 
-\cleardoublepage\appendix%
+\cleardoublepage
+\appendix
 \newpage
 \input{chapters/zalacznik.tex}
 
