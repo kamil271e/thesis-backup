@@ -3,29 +3,70 @@
 \section{Problem introduction}
  Theoretical introduction to a problem and mathematical concepts, literature review.... \\
  
- \noindent General task is to predict a weather state $\Omega$ at a timestamp $t$, based on \emph{s} steps into the past - previous weather states: $(\Omega_{t-1}, ..., \Omega_{t-s})$.
- As a $\Omega$ we define a multidimensional vector of a shape: (latitude span, longitude span, features). Spatial span was selected so as to cover the border of the whole of Poland and some of its neighbors. More details are discussed in dataset chapter [href].
+\noindent General task is to predict a weather state $\Omega_t$, observed at a timestamp $t$, given $s$ steps from the past, which are essentially previous weather states: $(\Omega_{t-1}, ..., \Omega_{t-s})$. We define $\Omega_t$ as a tensor of a shape: (latitude span, longitude span, features), therefore our complete input data would be 4-dimensional with additional dimension for a time \footnote{To be precise, for neural network based solutions it will be 5-dimensional due to the usage of batches.}. Spatial span was selected so as to cover the border of the whole of Poland and some of its neighbors. More details regarding data are discussed in dataset chapter~\ref{chap:dataset}. High-level spatio-temporal prediction framework is presented at Figure ~\ref{fig:in_out}. \\
 
-\section{Literature review}
-Short review of quality papers related to this problem; explanation of what was already achieved in this task - STATA solutions, especially emphasizing GraphCast paper; what we want to reproduce or compare ourself with.
+
+\newpage
+\subsection{Naming conventions and general prediction framework}
+ For further convenience, we propose a general naming convention. 
+ \begin{table}[!h]
+    \centering
+     \begin{tabular}{|c|c|}
+        \hline
+        Symbol & Description \\
+        \hline
+        $f_i$ & i-th feature \\
+        $s$ & Number of past steps \\
+        $fh$ & Forecasting horizon \\
+        $\Omega$ & Weather state for all features \\
+        $\mathbf{X}$ & $s$-element set of $\Omega$  \\
+        $X_t$ & $\Omega$ for timestamp t\\
+        $\mathbf{\hat{Y}}$ & $fh$-element set of estimated $\Omega$ \\
+        $\hat{Y_t}$ & Estimate of $\Omega$ for timestamp t \\
+        $\hat{y_t}^{f_j}$ & Estimate of $\Omega$ for timestamp t and feature $f_j$ \\
+        \hline
+    \end{tabular}
+    \caption{General conventions}
+ \end{table}
  
- \subsection{Naming convention}
- For further convenience, we propose a general naming convention. We define a $\mathbf{\Phi}$ as a set of baseline models that consist of: 
- \begin{itemize}
-    \item $\mathbf{\Phi}_{slr}$ - Simple Linear Regression,
-    \item $\mathbf{\Phi}_{lr}$ - Linear Regression,
-    \item $\mathbf{\Phi}_{es}$ - Exponential Smoothing,
-    \item $\mathbf{\Phi}_{lgb}$ - Light Gradient Boosting Trees,
- \end{itemize}
  
- \noindent Additionally, due to the fact that model $\mathbf{\Phi}_i$ is separated into independent models that predicts single feature $f_j$ of a weather state: 
+%% \noindent We define a $\mathbf{\Phi}$ as a set of baseline models that consist of: 
+\begin{table}[!h]
+    \centering
+    \begin{tabular}{|c|c|}
+        \hline
+        Model Notation & Model Description \\
+        \hline
+        $\mathbf{\Phi}_{slr}$ & Simple Linear Regression \\
+        $\mathbf{\Phi}_{lr}$  & Linear Regression \\
+        $\mathbf{\Phi}_{es}$  & Exponential Smoothing \\
+        $\mathbf{\Phi}_{gb}$ & Gradient Boosting Trees \\
+        \hline
+    \end{tabular}
+\caption{Model conventions}
+\end{table}
+ 
+%% \noindent Additionally, due to the fact that model $\mathbf{\Phi}_i$ consist of independent models that predicts single feature $f_j$ of a weather state, we can divide it into: 
+ 
+ \noindent Additionally, we define a model $\mathbf{\Phi}_i$ as a set of independent sub-models, where each is responsible only for the prediction of feature $f_j$. This solution was proposed to avoid situations in which ... TODO.
  \[
- \mathbf{\Phi}_{i} = (\mathbf{\Phi}_{i}^{f_1}, ..., \mathbf{\Phi}_{i}^{f_n})
+ \mathbf{\Phi}_{i} = (\Phi_{i}^{f_1}, ..., \Phi_{i}^{f_n})
  \]
- In further considerations, we will use a term \textbf{sub-models} for each of $\mathbf{\Phi}_{i}^{f_j}$.
+ In further considerations, we will use a term sub-models for each of $\Phi_{i}^{f_j}$.
+
+\input{figures/input_output.tex}
+
+\noindent Take into account the fact that this framework may differ when applying techniques such as grid neighbors~\ref{chap:neighbors} or using constants encodings~\ref{chap:feat_eng}. Details regarding those differences are explained deeply in subsequent chapters.
 
  \newpage
- \section{Autoregression}
+ 
+ \subsection{Literature review}
+ After stating the problem we want to shortly inspect current research and results in this field... \\
+Short review of quality papers related to this problem; explanation of what was already achieved in this task - SOTA solutions, especially emphasizing GraphCast paper; what we want to reproduce or compare ourself with. \\
+\noindent Maybe start with: ~\cite{WFConsiderations}
+
+\section{Explored techniques}
+ \subsection{Autoregression}
  \noindent Each baseline model is designed to predict the entire weather state for only the next timestamp - unit forecasting horizon. Therefore, when applying our models for short-term prediction task of a few timestamps into the future, the autoregressive approach is commonsensical. \\ \\
  
  \noindent Let's define model input as $\mathbf{X}$, a vector of $s$ weather states: 
@@ -44,62 +85,46 @@ Short review of quality papers related to this problem; explanation of what was 
     &\vdots \\
     &\hat{Y}_{t+s+fh-1} = \mathbf{\Phi}_{i}(X_{t+fh-1}, ...,  \hat{Y}_{t+s+fh-3}, \hat{Y}_{t+s+fh-2})
  \end{flalign*}
+
+ \noindent Therefore, oversimplifying:
+ \[
+    \mathbf{\hat{Y}} = \mathbf{\Phi_{i}(X)}
+ \]
  
  \noindent For each model except $\mathbf{\Phi}_{slr}$, during every autoregressive step concatenation of outputs from sub-models is required, whereas $X_t$ needs to have information from every feature:
  \begin{flalign*}
-    &\hat{y}_t^{f_i} = \mathbf{\Phi}_{j}^{f_i}(\mathbf{X}) \\
+    &\hat{y}_t^{f_j} = \Phi_{i}^{f_j}(\mathbf{X}) \\
     &\hat{Y}_{t} = (\hat{y}_t^{f_0}, ..., \hat{y}_t^{f_n}) \\
  \end{flalign*}
  
 \newpage
-\section{Neighbors}
-Explain neighbors concept used in baselines ... \\
+\subsection{Grid Neighbors}\label{chap:neighbors}
 
-\noindent For each input matrix we've implemented though called neighbors feature. It is expanding each of our data points to store information about closely located grid boxes. They're chosen based on the relative distance (radius) between the center of grid-boxes: $r$. On underneath figure, grid boxes colored grey represents relative data point and black boxes are its neighbors.
+\noindent For each input tensor we've implemented though called additional neighbors technique. It is expanding each of our data points to store information about closely located grid boxes. They're chosen based on the relative distance (radius) between the center of grid-boxes: $r$. On underneath figure, grid boxes colored grey represents relative data point and black boxes are its neighbors.
 
-\begin{figure}[h!]
+\input{figures/neighbors.tex}
+
+%Formal definition of a neighbors set $N$ for all of grid boxes $v$, where $V$ is a set of all:
+\noindent Formal definition, assuming that grid boxes has resolution (1x1):
+\begin{table}[!h]
     \centering
-
-    \begin{tikzpicture}[scale=0.5]
-        \draw[step=1, black] (0,0) grid (7,7);
-        \filldraw[fill=gray, draw=white] (3,3) rectangle (4,4);
-        \filldraw[fill=black, draw=white] (3,2) rectangle (4,3);
-        \filldraw[fill=black, draw=white] (2,3) rectangle (3,4);
-        \filldraw[fill=black, draw=white] (3,4) rectangle (4,5);
-        \filldraw[fill=black, draw=white] (4,3) rectangle (5,4);
-        
-        \begin{scope}[shift={(9,0)}]
-            \draw[step=1, black] (0,0) grid (7,7);
-            \foreach \i in {1, ..., 9} {
-                \pgfmathtruncatemacro\row{mod(\i-1,3)}
-                \pgfmathtruncatemacro\col{int((\i-1)/3)}
-                \filldraw[fill=black, draw=white] (\row+2,\col+2) rectangle (\row+3,\col+3);
-            }
-            \filldraw[fill=gray, draw=white] (3,3) rectangle (4,4);
-            \filldraw[fill=black, draw=white] (1,3) rectangle (2,4);
-            \filldraw[fill=black, draw=white] (5,3) rectangle (6,4);
-            \filldraw[fill=black, draw=white] (3,1) rectangle (4,2);
-            \filldraw[fill=black, draw=white] (3,5) rectangle (4,6);
-        \end{scope}
-
-        \begin{scope}[shift={(18,0)}]
-            \draw[step=1, black] (0,0) grid (7,7);
-            \foreach \i in {1, ..., 25} {
-                \pgfmathtruncatemacro\row{mod(\i-1,5)}
-                \pgfmathtruncatemacro\col{int((\i-1)/5)}
-                \filldraw[fill=black, draw=white] (\row+1,\col+1) rectangle (\row+2,\col+2);
-            }
-            \filldraw[fill=gray, draw=white] (3,3) rectangle (4,4); 
-            \filldraw[fill=black, draw=white] (0,3) rectangle (1,4);
-            \filldraw[fill=black, draw=white] (6,3) rectangle (7,4);
-            \filldraw[fill=black, draw=white] (3,0) rectangle (4,1);
-            \filldraw[fill=black, draw=white] (3,6) rectangle (4,7);
-        \end{scope}
-    \end{tikzpicture}
-    \caption{Neighbors logic for $r=(1,2,3)$}
-\end{figure}
+    \begin{tabular}{|c|c|}
+        \hline
+        Symbol & Description \\
+        \hline
+        $v_{i,j}$ & Grid box at latitude $i$ and longitude $j$ \\
+        $V$  & Set of all grid boxes \\
+        $\|v_{m,n} - v_{i,j}\|^2$  & Euclidian distance between centres of $v_1$ and $v_2$ \\
+        $N_v$ & Set of neighbors for grid box $v$ \\
+        \hline
+    \end{tabular}
+\end{table}
+\[
+    \forall v_{i,j} \in V: \{\forall v_{m,n \neq i,j} : \|v_{m,n} - v_{i,j}\|^2 \le r\} \in N_{v_{i,j}}
+\]
 
 \noindent Unfortunately, the trade-off between memory footprint, computational complexity, and performance gain was not sufficient to incorporate and test bigger $r$ values.
+
  
  \section{Baselines}
  \subsection{Exponential Smoothing}
@@ -124,16 +149,43 @@ Explain neighbors concept used in baselines ... \\
     \hat{y_1}\\\hat{y_2}\\ \vdots\\\hat{y_n}
     \end{bmatrix}
 \]
- \subsection{LGBM}
+ \subsection{Gradient Boosting}
  \subsection{UNet}
 
 
 \section{Neural network concept}
-Explain architecture of dense neural networks and other types such as convolutional, recurrent, graph (depending on which one eventually will be used).
+Optional? \\
+
+\noindent Explain architecture of dense neural networks and other types such as convolutional, recurrent, graph (depending on which one eventually will be used).
 
 \section{GraphCast}
 Deep dive into GraphCast architecture.
 
 \section{Model}
-Proposed model architecture and comparision with GraphCast. 
-	
+Proposed model architecture and comparision with GraphCast. \\
+
+\noindent After briefly testing multiple Graph Convolutional Cells that support edge feature vectors, we have concluded that the most promising results and sufficient computation time are obtained by TransformerConv ~\cite{shi2021masked}.\\
+
+\noindent Multi-layer perceptron as an embedder converting features dimension into more abstract latent space that stores better representation of weather state.
+
+.... \\
+
+\noindent Multi-layer perceptron as a decoder converting encoded features into its natural representation.
+
+
+\begin{flalign*}
+    X = MLP^{Embedder}(X) \\
+    X = GNN_1(X) \\
+    ...         \\
+    X = GNN_N(X) \\
+    \hat{Y} = MLP^{Decoder}(X) \\
+ \end{flalign*}
+
+\subsection{Additional techniques and feature engineering}\label{chap:feat_eng}
+Present concept of spatial-mapping, edge attributes. Explain spatial and temporal feature encodings as well as usage of constants like geopotential. 
+
+\begin{flalign*}
+    d_{V_i,V_j} &= \sqrt{(V_{j_x} - V_{i_x})^2 + (V_{j_y} - V_{i_y})^2} \\
+    e_{V_i,V_j} &= (V_{j_x} - V_{i_x}, V_{j_y} - V_{i_y}, d_{V_i,V_j})
+\end{flalign*}
+ 

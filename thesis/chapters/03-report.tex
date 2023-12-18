@@ -1,14 +1,25 @@
 \chapter{Report and analysis}
 
-\section{Data source and EDA}
-Description of dataset, preprocessing, visualisation and analysis.
+\section{Project structure}
+\input{figures/project_structure}
+
+\section{Dataset description}\label{chap:dataset}
+Description of dataset, train, val, test split, resoution of data, generally all details.
 \begin{itemize}
     \item Motivation behind usage of GRIB files and their description.
 \end{itemize}
 
-\section{Experiments and results}
-Results presentation, comparision with other models/benchmark scores. 
+\section{Preprocessing methods}
+Dividing time series into window sequences, normalization techniques
+
+\section{Experiments}
+
+\subsection{Hyperparameters optimization}
+A short definition of Bayesian optimization and presentation of used Optuna sampler - Tree-Structured Parzen Estimator.~\cite{watanabe2023treestructured} 
+
+\section{Results}
+Results presentation, comparision with other models/benchmark scores. Visualisation and analysis.
 
 \section{Practical details}
-Explain training, evaluating and forecasting details and methods;
-normalization and regularization techniques, used metrics and objectives, post processing, computation time, software and hardware stack etc.
+Explain training, evaluating and forecasting details and methods - e.g. spatial mapping of neural nets;
+normalization and regularization techniques, used metrics and objectives, post processing, computation time, software and hardware stack etc. 
