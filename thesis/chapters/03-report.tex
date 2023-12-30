@@ -1,4 +1,4 @@
-\chapter{Report and analysis}
+\chapter{Report and analysis}\label{chap:report}
 
 \section{Project structure}
 \input{figures/project_structure}
@@ -13,6 +13,7 @@ Description of dataset, train, val, test split, resoution of data, generally all
 Dividing time series into window sequences, normalization techniques
 
 \section{Experiments}
+We experimented with various solutions involving different numbers of layers and regularization techniques. Surprisingly, a relatively shallow network consistently outperformed all other solutions. As a result, there was no need to introduce any regularization techniques except LayerNorm, as overfitting was not observed.
 
 \subsection{Hyperparameters optimization}
 A short definition of Bayesian optimization and presentation of used Optuna sampler - Tree-Structured Parzen Estimator.~\cite{watanabe2023treestructured} 
