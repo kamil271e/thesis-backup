@@ -137,7 +137,7 @@ Institute of Computing Science
 \if@ppbachelor 
 Bachelor's thesis
 \else 
-Master's thesis
+Engineering thesis
 \fi
 \fi\par\vspace{1cm}\Large\bfseries\MakeUppercase}
 \posttitle{\end{center}}

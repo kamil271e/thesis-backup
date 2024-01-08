@@ -8,7 +8,7 @@
 
 % Szkielet dla pracy licencjackiej pisanej w języku polskim.
 
-\documentclass[english,bachelor,a4paper,oneside]{ppfcmthesis}
+\documentclass[english,engineering,a4paper,oneside]{ppfcmthesis}
 
 
 \usepackage[utf8]{inputenc}
@@ -17,6 +17,20 @@
 \usepackage{tikz}
 \usepackage{subcaption}
 \usepackage{stmaryrd}
+\usepackage{listings}
+\usepackage{multirow}
+
+% Define the JSON style
+\lstdefinelanguage{json}{
+  basicstyle=\ttfamily\small,
+  commentstyle=\color{green},
+  keywordstyle=\color{blue},
+  numberstyle=\tiny\color{gray},
+  stringstyle=\color{red},
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2
+}
 
 %--------------------------------------
 % Strona tytułowa
@@ -71,7 +85,7 @@
 % Literatura
 %--------------------------------------
 
-\bibliographystyle{plain}{\raggedright\sloppy\small\bibliography{bibliografia}}
+\bibliographystyle{plain}{\raggedright\sloppy\small\bibliography{bibliography}}
 
 %--------------------------------------
 % Dodatki

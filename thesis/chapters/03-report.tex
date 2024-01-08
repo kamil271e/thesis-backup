@@ -9,6 +9,8 @@ Description of dataset, train, val, test split, resoution of data, generally all
     \item Motivation behind usage of GRIB files and their description.
 \end{itemize}
 
+\section{Topline}
+Description of Tigge - maybe some details about methods that was used to forecast etc.
 \section{Preprocessing methods}
 Dividing time series into window sequences, normalization techniques
 
@@ -20,6 +22,44 @@ A short definition of Bayesian optimization and presentation of used Optuna samp
 
 \section{Results}
 Results presentation, comparision with other models/benchmark scores. Visualisation and analysis.
+
+
+\begin{table}[ht]
+\centering
+\caption{Comparison of Model Scores for Each Weather Feature}
+\label{tab:model_scores}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Feature} & \textbf{Metric} & \textbf{Our Model} & \textbf{Tigge} \\
+\midrule
+\multirow{2}{*}{t2m} & RMSE & 1.566 & \textbf{1.128} \\
+                     & MAE  & 1.175 & \textbf{0.826}\\
+\midrule
+\multirow{2}{*}{sp}  & RMSE & \textbf{1.229} & 3.237  \\
+                     & MAE  & \textbf{0.899} & 1.718  \\
+\midrule
+\multirow{2}{*}{tcc} & RMSE & 0.291 & \textbf{0.251}  \\
+                     & MAE  & 0.195 & \textbf{0.150} \\
+\midrule
+\multirow{2}{*}{u10} & RMSE & 1.145 & \textbf{0.708}  \\
+                     & MAE  & 0.830 & \textbf{0.514}  \\
+\midrule
+\multirow{2}{*}{v10} & RMSE & 1.136 & \textbf{0.696}  \\
+                     & MAE  & 0.820 & \textbf{0.502} \\
+\midrule
+\multirow{2}{*}{tp}  & RMSE & \textbf{0.295} & 1.400  \\
+                     & MAE  & \textbf{0.078} & 0.460 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\[
+\text{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2}
+\]
+
+\[
+\text{MAE} = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|
+\]
 
 \section{Practical details}
 Explain training, evaluating and forecasting details and methods - e.g. spatial mapping of neural nets;

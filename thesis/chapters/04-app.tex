@@ -1,5 +1,40 @@
 \chapter{Application}
 
+\section{Overview}
+The MeteoMind (nazwa do zmienienia/wywalenia) application is a user-friendly and intuitive tool designed for Android devices. Developed using Kotlin in the Android Studio IDE, this application seamlessly integrates with a powerful neural network model to provide accurate and reliable weather predictions. The core functionality revolves around connecting to an API that houses the neural network model, allowing users to access cyclically generated, future weather forecasts with ease. Application works for devices that run at least Android 11 and newer. Internet connection is required for the app to work properly and it is recommended to allow access to device's location for improved user experience
+
 \section{Functionality}
+
+
+
 \section{API}
+
+The API is composed of two endpoints: "/weather" and "/maps". The first request type takes two parameters; longitude and latitude of desirable location that we want obtain the weather to. Despite having data with the precision up to .25 degrees, the API can return the result for any given variables (within the range 55$^{\circ}$N 14$^{\circ}$E to 49$^{\circ}$N 25$^{\circ}$E), thanks to applied bi-linear interpolation. 
+
+    \begin{lstlisting}[language=json, caption={Example of returned JSON with one timestamp}]
+    {
+      "lat": 49.7128,
+      "lng": 21.006,
+      "timestamps": [
+        {
+          "timestamp": "0",
+          "values": {
+            "sp": 957.9060612843749,
+            "tcc": 0.9283748895462038,
+            "tp": 0.3892263389520347,
+            "u10": 2.7855365757220403,
+            "v10": -11.211292881364743,
+            "t2m": 9.181962833935547
+          }
+        }
+      ]
+    }
+    \end{lstlisting}
+
+The "maps" endpoint sends as a response compressed directory that contains colormaps for three features, total precipitation, total cloud cover and 2 metre temperature as well as legend for each one of them that shows the scale of values. 
+
+\input{figures/api_maps.tex}
+
+The API performs also simple preprocessing on the predictions of the model like converting units on total precipitation feature from meters to milimeters and meters per second to kilometers per hour on 10m u- and v- wind components.
+
 \section{Data Storage and DevOps solutions}
