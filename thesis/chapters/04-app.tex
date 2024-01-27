@@ -1,23 +1,65 @@
 \chapter{Application}
 
 \section{Overview}
-The MeteoMind (nazwa do zmienienia/wywalenia) application is a user-friendly and intuitive tool designed for Android devices. Developed using Kotlin in the Android Studio IDE, this application seamlessly integrates with a powerful neural network model to provide accurate and reliable weather predictions. The core functionality revolves around connecting to an API that houses the neural network model, allowing users to access cyclically generated, future weather forecasts with ease. Application works for devices that run at least Android 11 and newer. Internet connection is required for the app to work properly and it is recommended to allow access to device's location for improved user experience
+The MeteoMind application is a user-friendly tool designed for Android devices. Developed using Kotlin in the Android Studio IDE, this application integrates with our best neural network model to provide precise weather predictions. The main feature involves connecting to an API that houses the neural network model, allowing users to access cyclically generated, future weather forecasts. Application works for devices that run at least Android 11 and newer. Internet connection is required for the app to work properly and it is recommended to allow access to device's location for improved user experience. 
+
+The application logo was created using Inkscape\cite{inkscape}, a free and open-source vector graphics editor.
+
+\input{figures/meteomind_logo}
 
 \section{Functionality}
 
+The app consists of two main screens: a weather screen and a map screen. The weather screen displays the current weather data for a location, including temperature, wind speed and direction, and atmospheric pressure. It also provides a 6 hour window forecast. The map screen displays weather data on a map, allowing the user to visualize weather conditions across different areas. The navigation between screens is managed by a \textit{ViewPager2} and a \textit{TabLayout} in the \textit{MainActivity}. The \textit{ViewPager2} is a component that allows the user to swipe left and right through pages of content. It is associated with a \textit{ViewPagerAdapter}, which provides the content for each page. When a tab is selected in the \textit{TabLayout}, the corresponding page in the \textit{ViewPager2} is displayed.
 
+ The \textit{MyApplication} is a custom application class that initializes a database and a repository for storing location data. The database in this application is a Room database, which is a SQLite object-mapping library provided by Google. It allows for easy database access to an on-device stored data. The database consists of a single table named Location with the columns name, placeId, latitude, longitude, dt, and id.
+
+The \textit{MainActivity} class is the entry point of the application. It requests location permissions and retrieves the user's current location. If the location permission is not granted, it uses hardcoded coordinates. It then fetches weather data for the current location from a weather API and passes the data to the \textit{WeatherFragment}.
+
+The layout files define the UI for the different screens and components of the app. They use Material Design components and follow the guidelines for adaptive, responsive design to ensure a consistent look and feel across different device configurations.
+
+\subsection{Weather Fragment}
+
+The \textit{WeatherFragment} class displays the weather data. It uses the Google Places API to provide location search functionality. When a location is selected from the search results, it fetches the weather data for that location and updates the UI.
+
+The \textit{SearchBar}, which is positioned on top of the fragment, is a component that allows the user to input search queries for locations. It is initialized with the Google Places API key. When the user types in the \textit{SearchBar}, it triggers the \textit{placesAutocomplete} function, which sends a request to the Google Places API to get autocomplete predictions for the input text. 
+
+The \textit{SearchView} is a component that displays the search results. It contains a \textit{RecyclerView} that is used to display a list of autocomplete predictions. The \textit{SearchView} is hidden by default and is shown when the user starts typing in the \textit{SearchBar}. When a search result is clicked, the \textit{getPlaceByResult} function is called, which fetches the details of the selected place from the Google Places API and updates the \textit{SearchBar} text with the selected location's name. The \textit{SearchView} and \textit{SearchBar} are linked together such that when a location is selected from the search results, the \textit{SearchView} is hidden and the \textit{SearchBar} is updated with the selected location's name. The weather data for the selected location is then fetched and displayed. When nothing is typed in a \textit{SerachView} it displays \textit{LocationViewModel}, which is a history of searched locations. Thanks to that, user can instantly select location for which the weather they want to get. The \textit{LocationViewModel} retrieves location data from the \textit{LocationRepository}, which interacts with the \textit{LocationDatabase} to perform CRUD operations on the Location data. 
+
+\input{figures/app_weather}
+
+The \textit{WeatherFragment} also contains a custom \textit{ParticleView} for displaying weather animations such as falling snowflakes or raindrops and a \textit{WeatherView} for displaying the current weather data. The weather data is updated whenever a new location is selected or when the weather data for the current location changes. \textit{WeatherView} is enriched with custom-made vector graphics, created using Inkscape software. The weather icons are selected based on the weather conditions for a given time. The conditions are determined by the values of tp, tcc, and t2m variables. 
+
+\begin{itemize}
+    \item tp (Total Precipitation): If tp is less than 0.1, it means there is no significant precipitation, and the icon selection will be based on cloud cover (tcc). If tp is greater than or equal to 0.1, it means there is precipitation, and the icon selection will be based on both the temperature (t2m) and cloud cover (tcc).
+    \item tcc (Total Cloud Cover): This variable determines the cloudiness of the weather. Different ranges of tcc correspond to different levels of cloudiness, and thus different icons.
+    \item t2m (Temperature at 2 meters): This variable is used to determine whether the precipitation is snow (if t2m is less than 0) or rain (if t2m is greater than 2). If t2m is between 0 and 2, it is considered as a mix of rain and snow.
+\end{itemize}
+
+The time of the day (whether it is day or night) is also considered when selecting the icon. This is determined by comparing the current time with the sunrise and sunset times. Different icons are used for day and night. The information about sunset and sunrise is obtained using the \textit{Solarized} class from the \textit{phototime.solarized} \cite{solarized-android} package. This class takes in the latitude and longitude of the location and the current date as parameters.
+
+\input{figures/meteomind_svgs}
+
+Retrieved information about the sunrise and sunset hours is also used to generate \textit{SunPositionView}, a custom view that visually represents the position of the sun based on the time of day.
+
+\subsection{Map Fragment}
+
+ The \textit{MapFragment} class displays weather data on a map. The map is displayed using a \textit{SupportMapFragment} which is initialized when the fragment view is created. It is set up to show the area Poland. When the user moves the map away from Poland it gets reset to its initial position.
+
+\input{figures/app_maps}
+
+The fragment also includes a set of floating action buttons that allow the user to switch between different map layers. These layers include temperature, precipitation, and cloud cover. The layers are represented as a list of \textit{BitmapDescriptor} objects, which are created from PNG files received from API and stored in the app's cache directory. The fragment includes a slider that allows to navigate through different frames of the selected map layer. It also provides controls for the user to play, pause, and adjust the speed of an animation that visualizes the changes in weather conditions over time.
 
 \section{API}
 
-The API is composed of two endpoints: "/weather" and "/maps". The first request type takes two parameters; longitude and latitude of desirable location that we want obtain the weather to. Despite having data with the precision up to .25 degrees, the API can return the result for any given variables (within the range 55$^{\circ}$N 14$^{\circ}$E to 49$^{\circ}$N 25$^{\circ}$E), thanks to applied bi-linear interpolation. 
+\noindent The API is utilising the FastAPI \cite{fastapi} Python library, and is composed of three endpoints: "/weather", "/maps" and "/info". The first request type takes two parameters; longitude and latitude of desirable location that we want obtain the weather to. Despite having data with the precision up to .25 degrees, the API can return the result for any given variables (within the range 55$^{\circ}$N 14$^{\circ}$E to 49$^{\circ}$N 25$^{\circ}$E), thanks to applied bi-linear interpolation. 
 
-    \begin{lstlisting}[language=json, caption={Example of returned JSON with one timestamp}]
+    \begin{lstlisting}[language=json]
     {
       "lat": 49.7128,
       "lng": 21.006,
       "timestamps": [
         {
-          "timestamp": "0",
+          "timestamp": "2024-01-10T00:00:00",
           "values": {
             "sp": 957.9060612843749,
             "tcc": 0.9283748895462038,
@@ -30,11 +72,18 @@ The API is composed of two endpoints: "/weather" and "/maps". The first request 
       ]
     }
     \end{lstlisting}
+    \captionof{lstlisting}{Example of returned JSON with one timestamp}
 
-The "maps" endpoint sends as a response compressed directory that contains colormaps for three features, total precipitation, total cloud cover and 2 metre temperature as well as legend for each one of them that shows the scale of values. 
+\noindent The "maps" endpoint responds with sending a compressed directory that contains colormaps for three features, total precipitation, total cloud cover and 2 metre temperature as well as legend for each one of them that shows the scale of values. The maps were generated using matplotlib \cite{Hunter:2007} and cartopy \cite{Cartopy} libraries for Python. Colormaps represeting features like total precipitation or total cloud cover have fixed ranges and corresponding colors while for 2m temperature they differ based on minimum and maximum values in the forecasting horizon.
 
 \input{figures/api_maps.tex}
 
-The API performs also simple preprocessing on the predictions of the model like converting units on total precipitation feature from meters to milimeters and meters per second to kilometers per hour on 10m u- and v- wind components.
+The "info" endpoint is there to test if the API is working, and provides the date of the currently used input data.
 
-\section{Data Storage and DevOps solutions}
+Every 6 hours the API downloads the newest available data - in this case this means from 7 days before today - and runs the model in order to perform predictions on the newly acquired dataset. The predictions are saved in the JSON format, as presented in the snippet above.
+
+The API also performs simple preprocessing on the predictions of the model, like converting units on 10m u- and v- wind components features from meters per second to kilometers per hour.
+
+\subsection{Deployment}
+The API was deployed on an Amazon Web Services (AWS) \cite{aws} Elastic Cloud Compute (EC2) instance, as a Docker \cite{merkel2014docker} container. The deployment was chosen among those available in the Free Tier, which meant a t3-micro instance using the Ubuntu 22.04 operating system, on the eu-north-1b (Stockholm) Availability Zone. The entire app was encapsulated in a Docker container, which helps with access and bug fixing - we can work on developing it on our own devices, upload the new image to DockerHub, and then pull and run the updated image on the EC2 instance. The app exposes port 8080, through which our mobile app can access the weather predictions.
+

@@ -2,19 +2,22 @@
 	
 \section{Problem introduction}
 
-General task is to predict a weather state $\Omega^t$, observed at a timestamp $t$, given $s$ steps from the past, which are essentially previous weather states: $(\Omega^{t-s \Delta d}, ..., \Omega^{t-\Delta d})=\Omega^{t-s\Delta d:t-\Delta t}$. Where $\Delta d$ is the step length, in our considerations arbitrarily chosen to be equal to 6 hours; for simplicity in further considerations we will use $\Omega^{t+1}$ instead of $\Omega^{t+\Delta d}$. We denote $\Omega^t$ as a tensor of a shape: (latitude span, longitude span, features), therefore our complete input data would be 4-dimensional with additional dimension for a time \footnote{For neural network based solutions it will be 5-dimensional due to the usage of batches.} \footnote{Additional dimension occur when using neighbor extension \ref{chap:neighbors}.}. Spatial span was selected so as to cover the border of the whole of Poland and some of its neighbors. More details regarding data are discussed in dataset chapter~\ref{chap:dataset}. High-level spatio-temporal prediction framework is presented at Figure~\ref{fig:in_out}. \\
+The general task is to predict a weather state $\Omega^t$, observed at a time $t$, given $s$ past timestamps, which are essentially previous weather states: $(\Omega^{t-s \Delta d}, ..., \Omega^{t-\Delta d})=\Omega^{(t-s\Delta d):(t-\Delta t)}$, where $\Delta d$ is the step length, in our examination arbitrarily chosen to be equal to 6 hours. For simplicity in further considerations we will use $\Omega^{t\pm1}$ instead of $\Omega^{t\pm\Delta d}$. We denote weather state at a timestamp $t$ as a tensor of a shape: (latitude span, longitude span, features), therefore our complete input data as well as prediction would be 4-dimensional tensors with an additional dimension for a time \footnote{For neural network based solutions it will be 5-dimensional due to the usage of batches.} \footnote{Additional dimension occurs when using neighbor extension \ref{chap:neighbors}.}. Spatial span was selected so as to cover the border of the entirety of Poland and some of its neighbouring territories. More details regarding data are discussed in chapter \ref{chap:dataset}. High-level spatio-temporal prediction framework is presented at Figure \ref{fig:in_out}
 
-\noindent Forecasting performance would be evaluating by objective function:
-\[
-    \mathcal{L}(\hat{X}, X)
-\]
-
-
-\newpage
+Forecasting performance would be evaluated by the objective functions known as \emph{mean absolute error} and \emph{root mean squared error}, defined, respectively, as: 
+\begin{flalign*}
+    \mathcal{L}_{MAE}(\hat{\mathbf{Y}}, \mathbf{Y}) &= \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i| \\ \\
+    \mathcal{L}_{RMSE}(\hat{\mathbf{Y}}, \mathbf{Y}) &= \sqrt{\frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2}
+\end{flalign*}
+\noindent where $\hat{\mathbf{Y}}$ is the tensor of predictions and $\mathbf{Y}$ is the tensor of ground truth values. The application of these functions will be separated into two situations:
+\begin{itemize}
+    \item They will be computed for all features separately to obtain interpretable results regarding prediction performance related to a given feature.
+    \item In neural networks loss function calculation and for the analysis presented in Chapter \ref{chap:report}, they will be computed on the normalized version of features, resulting in a more abstract but singular score.
+\end{itemize}
 
 \subsection{Naming convention}
- For further convenience, we propose a general naming convention. 
- \begin{table}[!h]
+ For further convenience, we propose a general naming convention presented in \ref{tab:name_conv} and \ref{tab:model_conv}. 
+ \begin{table}[!ht]
     \centering
      \begin{tabular}{|c|c|}
         \hline
@@ -23,163 +26,110 @@ General task is to predict a weather state $\Omega^t$, observed at a timestamp $
         $\mathbf{f}$ & Set of features: $(f_1,..., f_n)$ \\
         $s$ & Number of past steps \\
         $h$ & Forecasting horizon \\
-        $\Omega$ & Weather state for all features \\
-        $X^t$ & $\Omega$ for timestamp t\\
-        $x^t_{f_j}$ & $\Omega$ for timestamp t and feature $f_j$ \\
-        $\mathbf{X}$ & $s$-element set of $\Omega$  \\
-        $\hat{Y^t}$ & Prediction of $\Omega$ for timestamp t \\
-        $\hat{y^t}_{f_j}$ & Prediction of $\Omega$ for timestamp t and feature $f_j$ \\
-        $\mathbf{\hat{Y}}$ & $h$-element set of predicted $\Omega$ \\
+        $\Omega$ & Real weather state for all features \\
+        $\mathbf{X}$ & Input weather state tensor  \\
+        $\mathbf{Y}$ & Target weather state tensor  \\
+        $\hat{\mathbf{Y}}$ & Predicted weather state tensor \\
+        $\mathbf{x}$ & Input weather state at a single grid box \\
+        $\mathbf{y}$ & Target weather state at a single grid box \\
+        $\hat{\mathbf{y}}$ & Predicted weather state at a single grid box \\
         \hline
     \end{tabular}
     \caption{General conventions}
+    \label{tab:name_conv}
  \end{table}
+
+Additionally, for each weather tensor $(\mathbf{X}, \mathbf{Y}, \hat{\mathbf{Y}})$, the superscript represents time-related information, signifying the state at a given timestamp (e.g., $\mathbf{X}^t$), or a set of states from $t$ to $t'$ timestamps inclusively (e.g., $\mathbf{X}^{t:t'}$). The subscript indicates the specific feature to which the tensor applies (e.g., $\mathbf{X}_{f_j}$). A tensor with no subscripts by default applies to all features: for $\mathbf{X}$, to all $s$ past steps, and for $\mathbf{Y}$ and $\hat{\mathbf{Y}}$, to all $h$ future steps. We also highlight lowercase letters $(\mathbf{x},\mathbf{y},\hat{\mathbf{y}})$ representing the weather state for a single grid box.
  
- 
-%% \noindent We define a $\Phi$ as a set of baseline models that consist of: 
-\begin{table}[!h]
+\begin{table}[!ht]
     \centering
-    \begin{tabular}{|c|c|}
+    \begin{tabular}{|c|c|c|}
         \hline
-        Model Notation & Model Description \\
+        Model Notation & Abbreviation & Model Description \\
         \hline
-        $\Phi^{es}$  & Exponential Smoothing \\
-        $\Phi^{slr}$ & Simple Linear Regression \\
-        $\Phi^{lr}$  & Linear Regression \\
-        $\Phi^{gb}$ & Gradient Boosting Trees \\
+        $\Phi^{ES}$  & $ES$ & Exponential Smoothing \\
+        $\Phi^{SLR}$ & $SLR$ & Simple Linear Regression \\
+        $\Phi^{LR}$  & $LR$ & Linear Regression \\
+        $\Phi^{GB}$ & $GB$ & Gradient Boosting Trees \\
         \hline
     \end{tabular}
-\caption{Model conventions}
+\caption{Baseline model conventions}
+\label{tab:model_conv}
 \end{table}
-
-% \begin{figure}[!ht]
-%     \centering
-
-%     \begin{subfigure}[b]{0.48\textwidth}
-%         \centering
-%         \begin{tabular}{|c|c|}
-%             \hline
-%             Symbol & Description \\
-%             \hline
-%             $\mathbf{f}$ & Set of features: $(f_1,..., f_n)$ \\
-%             $s$ & Number of past steps \\
-%             $h$ & Forecasting horizon \\
-%             $\Omega$ & Weather state for all features \\
-%             $X_t$ & $\Omega$ for timestamp t\\
-%             $\mathbf{X}$ & $s$-element set of $\Omega$  \\
-%             $\hat{Y_t}$ & Prediction of $\Omega$ for timestamp t \\
-%             $\mathbf{\hat{Y}}$ & $h$-element set of predicted $\Omega$ \\
-%             $\hat{y_t}^{f_j}$ & Prediction of $\Omega$ for timestamp t and feature $f_j$ \\
-%             \hline
-%         \end{tabular}
-%         \caption{General}
-%     \end{subfigure}
-%     % \hspace{0.05\textwidth}
-%     \hspace*{\fill}
-%     \begin{subfigure}[b]{0.48\textwidth}
-%         \centering
-%         \begin{tabular}{|c|c|}
-%             \hline
-%             Symbol & Description \\
-%             \hline
-%             $\Phi^{es}$  & Exponential Smoothing \\
-%             $\Phi^{slr}$ & Simple Linear Regression \\
-%             $\Phi^{lr}$  & Linear Regression \\
-%             $\Phi^{gb}$ & Gradient Boosting Trees \\
-%             \hline
-%         \end{tabular}
-%         \caption{Models}
-%     \end{subfigure}
-
-%     \caption{Naming conventions}
-% \end{figure}
  
- 
- \noindent It is crucial to emphasize the fact that the scale of values of distinct features is diverse. Therefore, we define a model $\Phi^i$ as a collection of independent sub-models, each exclusively responsible for predicting distinct feature $f_j$. This solution was proposed to avoid situations in which the statistical dispersion of one feature might influence the prediction of another feature.  
+ It is crucial to emphasize the fact that the scale of values of distinct features is diverse. Therefore, we define a model $\Phi$ as a collection of independent sub-models, each exclusively responsible for predicting distinct feature $f_j$. This solution was proposed to avoid situations in which the statistical dispersion of one feature might influence the prediction of another feature.  
  \[
- \Phi^{i} = (\Phi^{i}_{f_1}, ..., \Phi^{i}_{f_n})
+ \Phi = (\Phi_{f_1}, ..., \Phi_{f_n})
  \]
- In further considerations, we will use a term: sub-models for each of $\Phi^{i}_{f_j}$.
+  In further considerations, we will use a term: sub-models for each of $\Phi_{f_j}$. This is not applied to neural network solutions \ref{NN-theory}, which always use the singular model to predict all target features simultaneously.
 
 \subsection{General prediction framework}
 \input{figures/input_output.tex}
 
-\noindent Take into account the fact that this framework may differ when applying techniques such as grid neighbors~\ref{chap:neighbors} or using constants encodings~\ref{chap:feat_eng}. Details regarding those differences are explained deeply in subsequent chapters.
+The general framework of prediction is as follows: taking as input the past $s$ weather states $\mathbf{X}^{(t-s+1):(t)}=\mathbf{X}$, the models output the predicted next $h$ weather states $\hat{\mathbf{Y}}^{(t+1):(t+h)}=\hat{\mathbf{Y}}$. \\
 
-\newpage
+It is worth taking into account the fact that this framework may differ when applying techniques such as grid neighbors \ref{chap:neighbors} or using constant encoding \ref{chap:feat_eng}. Details regarding those differences are explained deeply in subsequent chapters.
+
+
 \section{Explored techniques}
  \subsection{Autoregression}
- \noindent Each baseline model is designed to forecast the entire weather state for subsequent timestamp, with the forecasting horizon set at one. Therefore, when employing our models for short-term prediction tasks exceeding a few timestamps into the future, the autoregressive approach is commonsensical. \\ \\
- 
- \noindent We denote model input as $\mathbf{X}$, a tensor of $s$ weather states: 
- \[
- \mathbf{X} = 
- \begin{bmatrix}
-     X^{t} & ... & X^{t+s-1}
- \end{bmatrix}
- \]
- and output of a model as $\mathbf{\hat{Y}}$, which consist of $h$ forecasted states:
- \[
- \mathbf{\hat{Y}} = 
- \begin{bmatrix}
-     \hat{Y}^{t+s} & ... & \hat{Y}^{t+s+h-1}
- \end{bmatrix}
- \]
- 
- \noindent With assumption that $h \leq s$, autoregressive prediction is $h$-steps process such that:
+ Each baseline model is designed to forecast the entire weather state for the subsequent timestamp, with the forecasting horizon set at one. Therefore, when employing our models for short-term prediction tasks exceeding a few timestamps into the future, the autoregressive approach could be used. \\
+
+ We denote model input as $\mathbf{X}$ and model output as $\hat{\mathbf{Y}}$ according to the convention in \ref{tab:name_conv} and $\oplus$ operation as concatenation of tensors. With assumption that $h \le s$, autoregression is $h$-steps prediction process such that:
  \begin{flalign*}
-    &\hat{Y}^{t+s} = \Phi^{i}(X^{t:t+s-1}) \\
-    &\hat{Y}^{t+s+1} = \Phi^{i}(X^{t+1:t+s-1}, \hat{Y}^{t+s}) \\
+    &\hat{\mathbf{Y}}^{t+1} = \Phi(\mathbf{X}^{(t-s+1):(t)}) \\
+    &\hat{\mathbf{Y}}^{t+2} = \Phi(\mathbf{X}^{(t-s+2):(t)} \oplus \hat{\mathbf{Y}}^{t+1}) \\
+    &\hat{\mathbf{Y}}^{t+3} = \Phi(\mathbf{X}^{(t-s+3):(t)} \oplus \hat{\mathbf{Y}}^{(t+1):(t+2)}) \\
     &\vdots \\
-    &\hat{Y}^{t+s+h-1} = \Phi^{i}(X^{t+h-1:t+s-1}, \hat{Y}^{t+s:t+s+h-2})
+    &\hat{\mathbf{Y}}^{t+h} = \Phi(\mathbf{X}^{(t-s+h):(t)} \oplus \hat{\mathbf{Y}}^{(t+1):(t+h-1)})
  \end{flalign*}
 
- \noindent Therefore, by simplifying:
+ Therefore, by simplifying:
  \[
-    \mathbf{\hat{Y}} = \Phi^{i}(\mathbf{X})
+    \hat{\mathbf{Y}} = \Phi(\mathbf{X})
  \]
  
- \noindent For each model except $\Phi^{slr}$, during every autoregressive step concatenation of outputs from sub-models is required, whereas $X_t$ needs to have information from every feature:
+ For each model except $\Phi^{slr}$, during every autoregressive step concatenation of outputs from sub-models is required, whereas $\mathbf{X}^t$ needs to have information from every feature:
  \begin{flalign*}
-    &\hat{y}^t_{f_j} = \Phi^{i}_{f_j}(\mathbf{X}^{t-1}) \\
-    &\hat{Y}^{t} = 
-    \begin{bmatrix}
-        \hat{y}^t_{f_1} & ... & \hat{y}^t_{f_n}
-    \end{bmatrix}
+    &\hat{\mathbf{Y}}^{t+1}_{f_j} = \Phi_{f_j}(\mathbf{X}^{t}) \\
+    &\hat{\mathbf{Y}}^{t+1} = \hat{\mathbf{Y}}^{t+1}_{f_1} \oplus \ldots \oplus \hat{\mathbf{Y}}^{t+1}_{f_n}
  \end{flalign*}
- 
-\subsection{Neighbors Extension}\label{chap:neighbors}
 
-\noindent For every input tensor we have implemented an extension called additional neighbors. It expand each data points to include information about closely located grid boxes. Selection of neighbours is determined by the relative distance (radius) between the center of grid-boxes: $r$. In the Figure \ref{fig:neighbors}, grey-colored grid boxes represents the primary data point and black boxes represents its neighbors. \\
+\subsection{Neighbors Extension}\label{chap:neighbors}
+For every input tensor we have implemented an extension called additional neighbors. It expands all data points to include information from closely located grid boxes. Selection of neighbours is determined by the relative distance (radius) between the center of grid-boxes: $r$. In the Figure \ref{fig:neighbors}, grey-colored grid boxes represent the primary data point and black boxes represent its neighbors.
 
 \input{figures/neighbors.tex}
 
-\noindent Formal definition, assuming that grid boxes has resolution (1x1):
-\begin{table}[!h]
+Below be present formal definition, assuming that grid boxes has resolution (1x1) and according to Table \ref{tab:neigh_conv}:
+\renewcommand{\arraystretch}{1.25}
+\begin{table}[!ht]
     \centering
     \begin{tabular}{|c|c|}
         \hline
         Symbol & Description \\
         \hline
         $v_{i,j}$ & Grid box at latitude $i$ and longitude $j$ \\
-        $V$  & Set of all grid boxes \\
+        $\mathcal{V}^G$  & Set of all grid boxes \\
         $\|v_{m,n} - v_{i,j}\|^2$  & Euclidian distance between centres of $v_{m,n}$ and $v_{i,j}$ \\
         $\mathcal{N}(v)$ & Set of neighbors for grid box $v$ \\
         \hline
     \end{tabular}
+\caption{Neighbor conventions}
+\label{tab:neigh_conv}
 \end{table}
+\renewcommand{\arraystretch}{1}
 \[
-    \forall v_{i,j} \in V: \{\forall v_{m,n \neq i,j} : \|v_{m,n} - v_{i,j}\|^2 \le r\} \in \mathcal{N}(v_{i,j})
+    \forall v_{i,j} \in \mathcal{V}^G: \{\forall v_{m,n \neq i,j} : \|v_{m,n} - v_{i,j}\|^2 \le r\} \in \mathcal{N}(v_{i,j})
 \]
 
-\noindent Unfortunately, the trade-off between memory footprint, computational complexity, and performance gain was not sufficient to incorporate and test bigger $r$ values.
+Unfortunately, the trade-off between memory footprint, computational complexity, and performance gain was not sufficient to incorporate and test bigger $r$ values.
 
- \newpage
+ 
  \section{Literature review}
- Amazing survey, use as much as possible; write the same conclusions; try to write intro similar to its abstract - distinguishing short-term weather prediction and medium-to-large weather prediction: \cite{app132112019}!!! \\ 
-\noindent After stating the problem we want to shortly inspect current research and results in the field of MLWP. Therefore, we present a short review of quality papers related to this problem and broadly consider as a current state-of-the-art solutions.
+ %distinguishing short-term weather prediction and medium-to-large weather prediction: \cite{app132112019} \\ 
+Now that we have stated the problem, we would like to shortly inspect current research and results in the field of MLWP. Therefore, we present a short review of quality papers related to this problem and broadly considered as current state-of-the-art solutions. For a more in-depth exploration of the subject, we recommend referring to the article that inspired our selection of the discussed architectures \cite{app132112019}.
 
-\subsection{GraphCast}
+\subsection{GraphCast} \label{sec:graphcast}
 \begin{figure}[!ht]
     \centering
     \includegraphics[scale=0.35]{figures/enc_pro_dec.png}
@@ -187,7 +137,7 @@ General task is to predict a weather state $\Omega^t$, observed at a timestamp $
     \label{fig:enc_pro_dec}
 \end{figure}
 
-\noindent GraphCast, was the main inspiration for our work on the weather forecasting problem ~\cite{lam2023graphcast}. Published in late 2022 by Google Deepmind, was the first MLWP model to notably outperform state-of-the-art NWP methods (HRES) on multiple benchmarks. Furthermore, it is already being incorporated by ECMWF. The out-of-the-box approach to solving the problem by constructing a heterogeneous graph divided into 3 components: Encoder, Processor, and Decoder - Figure \ref{fig:enc_pro_dec}, with a component called Multi Mesh and multiple graph layers aggregating information from neighboring objects proved to be very successful. The architecture itself relies on the graph $\mathcal{G}$, which distinguishes 5 elements:
+GraphCast was the main inspiration for our work on the weather forecasting problem \cite{lam2023graphcast}. Published in late 2022 by Google Deepmind, was the first MLWP model to notably outperform state-of-the-art NWP methods (HRES) on multiple benchmarks. Furthermore, it is already being incorporated by ECMWF \cite{graphcast-deepmind}. The out-of-the-box approach to solving the problem by constructing a heterogeneous graph divided into 3 components: Encoder, Processor, and Decoder -- Figure \ref{fig:enc_pro_dec}, with a component called Multi Mesh and multiple graph layers aggregating information from neighboring objects proved to be very successful. The architecture itself relies on the graph $\mathcal{G}$, which distinguishes 5 elements:
 \begin{itemize}
     \item $\mathcal{V}^{G}$: The set of vertices of the grid,
     \item $\mathcal{V}^M$: The set of multi-mesh vertices,
@@ -196,21 +146,22 @@ General task is to predict a weather state $\Omega^t$, observed at a timestamp $
     \item $\mathcal{E}^{M2G}$: The set of edges from the multi-mesh to the grid
 \end{itemize} 
 
-\noindent The authors of this solution use 474 input features, all included in $\mathcal{V}^{G}$:
+The authors of this solution use 474 input features, all included in $\mathcal{V}^{G}$:
 \begin{itemize}
     \item Weather features: 2 timestamps of 5 surface variables and 6 atmospheric variables measured at 37 pressure levels
-    \item Constants: 5 static features containing encoded spatial information as well as binary land-sea mask, geopotential, and others
-    \item Forcing terms: consist of 5 encoded temporal features for 3 timestamps (one lead timestamp)
+    \item Constants: 5 static features containing encoded spatial information as well as binary land-sea mask and geopotential
+    \item Forcing terms: consist of 5 encoded temporal features for 3 timestamps (one lead timestamp) and also includes analytically computed solar radiation
 \end{itemize}
 
-\noindent Other components have no weather context. All edges encode only spatial information such as edge lengths and coordinate differences, $\mathcal{V}^M$ encode only latitude and longitude values. The process of transferring weather knowledge to those components is discussed in subsequent subchapters.
+Other components have no weather context. All edges encode only spatial information such as edge lengths and coordinate differences, $\mathcal{V}^M$ encode only latitude and longitude values. The process of transferring weather knowledge to those components is discussed in subsequent subchapters.
 
 \subsubsection{Message-passing} 
-The whole essence of graph neural networks is the use of the message-passing algorithm. It is based on the aggregation of information from neighbors (usually neighboring nodes, but it can also be edges if they have features). The aggregation function must be permutation invariant - popular choices are average or sum. Example message-passing step using average function:
+The whole essence of graph neural networks is the use of the message-passing algorithm. It is based on the aggregation of information from neighbors (usually neighboring nodes, but it can also be edges if they have features). The aggregation function must be permutation invariant: popular choices are average or sum. Example message-passing step using average function:
 \[
-    H_i^{t+1} = ReLU(H_i^t W \frac{1}{|\mathcal{N}(i)|} \sum_{j \in \mathcal{N}(i)} H_j^t U)
+    H_i^{t+1} = ReLU\left(H_i^t W  + \frac{1}{|\mathcal{N}(i)|} \sum_{j \in \mathcal{N}(i)} H_j^t U\right)
 \]
-\begin{table}[!h]
+%\WK{Paranthesis should be adaptable to what is inside using $\backslash$left( and $\backslash$right)}
+\begin{table}[!ht]
     \centering
     \begin{tabular}{|c|c|}
         \hline
@@ -224,7 +175,7 @@ The whole essence of graph neural networks is the use of the message-passing alg
 \end{table}
 
 \subsubsection{Multi-mesh}\label{chap:multi-mesh}
-The process of creating a multi-mesh involves iteratively dividing each face of the polyhedra into four parts to increase resolution: Figure \ref{fig:mesh-face}. At first, 12 vertices with uniform resolution are placed across the globe and connected by edges: $M_0$, then there are 5 iterations of the mentioned division, consequently obtaining $M_6$ with more than 40 thousand vertices: Figure \ref{fig:multi-mesh}. All generated polyhedra: $(M_0,..., M_6)$ are connected to form a multi-mesh with multiple edges of different lengths that will later be able to assimilate both short and long-distance weather contexts. \\
+The process of creating a multi-mesh involves iteratively dividing each face of a polyhedron into four parts to increase resolution (Figure \ref{fig:mesh-face}). At first, 12 vertices with uniform resolution are placed across the globe and connected by edges: $M_0$, then there are 6 iterations of the mentioned division, consequently obtaining $M_6$ with more than 40 thousand vertices (Figure \ref{fig:multi-mesh}). All generated polyhedra: $(M_0,..., M_6)$ are connected to form a multi-mesh with multiple edges of different lengths that will later be able to assimilate both short and long-distance weather contexts. \\
 
 \begin{figure}[!ht]
     \centering
@@ -235,226 +186,314 @@ The process of creating a multi-mesh involves iteratively dividing each face of 
 \input{figures/mesh_face.tex}
 
 \subsubsection{Generation of $\mathcal{E}^{M2G}$ and $\mathcal{E}^{G2M}$}
-\noindent When consider $\mathcal{V}^{G}$ as an input data and $\mathcal{V}^M$, $\mathcal{E}^{M}$ creation process is described in \ref{chap:multi-mesh} connecting these biparite graphs requires generation of $\mathcal{E}^{M2G}$ and $\mathcal{E}^{G2M}$.\\
+Considering $\mathcal{V}^{G}$ as input data, having already described the creation process of $\mathcal{V}^M$ and $\mathcal{E}^{M}$, connecting these two graphs requires generation of $\mathcal{E}^{M2G}$ and $\mathcal{E}^{G2M}$. \WK{Expand these symbols here, the reader doesn't want to continuously look into the table where $\mathcal{E}^{G2M}$ is explained **Maciej - I put the table below again**}
 
-\noindent Multi-mesh refined space with the lowest resolution denoted as $M_6$ is constructed so that each face of it, specifically all three of the nodes that create such face, might be connected to the nearest grid node.\\
+Multi-mesh refined space with the lowest resolution denoted as $M_6$ is constructed so that each face of it, specifically all three of the nodes that create such face, might be connected to the nearest grid node.
 
-\noindent A reverse connection is generated when the distance between the grid node and mesh node is less or equal to 0.6 lengths of $M_6$ edge:
+A reverse connection is generated when the distance between the grid node and mesh node is less or equal to 0.6 lengths of $M_6$ edge:
 \[
     d_{v_i^G,v_j^M} \leq 0.6e^{M_6}
 \]
 It ensures that every grid point is connected with at least one mesh node.
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{|c|c|}
+        \hline
+        Symbol & Definition \\
+        \hline
+        $\mathcal{V}^{G}$ & Set of vertices of the grid \\
+        $\mathcal{V}^M$ & Set of multi-mesh vertices \\
+        $\mathcal{E}^{G2M}$ & Set of edges from the grid to the multi-mesh \\
+        $\mathcal{E}^{M}$ & Set of edges inside the multi-mesh \\
+        $\mathcal{E}^{M2G}$ & Set of edges from the multi-mesh to the grid \\
+        \hline 
+    \end{tabular}
+    \caption{Symbols and their definition}
+    \label{tab:graphcast-symbols}
+\end{table}
+
 \subsubsection{Encoder} 
-At the very beginning, all graph components go through MLP layers to obtain the same latent space dimension for later convenience of information aggregation at the message-passing step. Then a single GNN layer is applied to pass weather information to the multi-mesh, updating the edge representations $\mathcal{E}^{G2M}$ by aggregating information from adjacent nodes, and updating the node representations $\mathcal{V}^M$ by aggregating all the already updated edges that arriving into particular mesh node. In addition, residual connections are applied to all components involved in this part of the algorithm.
- \begin{flalign*}
-    &\mathcal{V}^{G} = MLP(\mathcal{V}^{G}) \\
-    &\mathcal{V}^M = MLP(\mathcal{V}^M) \\
-    &\mathcal{E}^{G2M} = MLP(\mathcal{E}^{G2M}) \\
-    &\mathcal{E}^{M} = MLP(\mathcal{E}^{M}) \\
-    &\mathcal{E}^{M2G} = MLP(\mathcal{E}^{M2G}) \\
- \end{flalign*}
+At the very beginning, all graph components go through MLP layers to obtain the same latent space dimension for later convenience of information aggregation at the message-passing step. Then a single GNN layer is applied to pass weather information to the multi-mesh, updating the edge representations $\mathcal{E}^{G2M}$ by aggregating information from adjacent nodes, and updating the node representations $\mathcal{V}^M$ by aggregating all the already updated edges arriving into a particular mesh node. In addition, residual connections are applied to all components involved in this part of the algorithm.
+ % \begin{flalign*}
+ %    &\mathcal{V}^{G} = MLP(\mathcal{V}^{G}) \\
+ %    &\mathcal{V}^M = MLP(\mathcal{V}^M) \\
+ %    &\mathcal{E}^{G2M} = MLP(\mathcal{E}^{G2M}) \\
+ %    &\mathcal{E}^{M} = MLP(\mathcal{E}^{M}) \\
+ %    &\mathcal{E}^{M2G} = MLP(\mathcal{E}^{M2G}) \\
+ % \end{flalign*}
 
 \subsubsection{Processor}
-The message-passing algorithm runs similarly as in Encoder, first updating the $\mathcal{E}^M$ and then $\mathcal{V}^M$. Finally, residual connections are added identically as before. This process is iteratively called 16 times. \\
+The message-passing algorithm runs similarly as in the Encoder, first updating the $\mathcal{E}^M$ and then $\mathcal{V}^M$. Finally, residual connections are added identically as before. This process is performed iteratively 16 times, with each iteration expanding and enriching the weather context for all multi-mesh components.
 
 \subsubsection{Decoder}
-To return to the grid and the target representation of the weather state, a graph layer is applied that updates $\mathcal{E}^{M2G}$ and $\mathcal{V}^G$ sequentially, along with the residual connections. Finally, a final MLP layer is added to change the hidden dimension to match the number of target features. \\
+To return to the grid and the target representation of the weather state, another graph layer is applied. It updates $\mathcal{E}^{M2G}$ and $\mathcal{V}^G$ sequentially, along with the residual connections. Finally, a final MLP layer is added to change the hidden dimension to match the number of target features. 
+
+It is worth noting that the model does not predict the next state of the weather, but the difference between the state of the previous state and the predicted state:
+\[
+    \hat{\mathbf{Y}}^{t+1} = \text{GraphCast}(\mathbf{X}^{t':t}) + \mathbf{X}^t
+\]
+In addition, the cost function is calculated autoregressively and the forecasting horizon increases sequentially with training progress.
+% \[
+%     \mathcal{L}(\hat{\mathbf{X}}^{t':t} \oplus \hat{\mathbf{Y}}^{t:t''}, \mathbf{Y}^{t:t''})
+% \]
+% **not sure if formula needed nor correct though.
 
 \subsection{MetNet}
-Another notable architecture is MetNet, proposed by Google Research \cite{DBLP:journals/corr/abs-2003-12140}. It primarily aims to leverage the strengths of both convolutional and recurrent neural networks for spatio-temporal data. Architecture is divided into 3 components:
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.6]{figures/MetNet.png}
+    \caption{MetNet architecture overview \cite{DBLP:journals/corr/abs-2003-12140}}
+    \label{fig:metnet}
+\end{figure}
+Another notable architecture is MetNet, proposed by Google Research \cite{DBLP:journals/corr/abs-2003-12140}. It primarily aims to leverage the strengths of both convolutional and recurrent neural networks for spatio-temporal data. Its substantial difference from the GraphCast architecture is that it works on patches of the Earth instead of the entire globe: (1024 $\times$ 1024) km grid. Moreover, the frequency of the considered weather states is eminently high: 15-minute time steps. Architecture is divided into 3 components:
 \subsubsection{Spatial Downsampler}
 The component that works independently on the spatial dimension. Its task is to work as an encoder to create more compact latent space by obtaining multiple convolutional and max pooling operations that aggregate and encode spatial features of data.
 \subsubsection{Temporal Encoder}
-As its name suggests it focuses on temporal dimension working parallel to Spatial Downsampler. It leverages Convolutional Long Short-Term Memory (ConvLSTM) layers that emphasize the influence of the last timestamps in the input tensors. 
+As its name suggests it focuses on temporal dimension working parallel to Spatial Downsampler. It leverages Convolutional Long Short-Term Memory (ConvLSTM) layers that capture the temporal context of data, emphasizing the influence of the most recent timestamps in the input tensors \cite{shi2015convolutional}. 
 \subsubsection{Spatial Aggregator}
-The last component functioning as a robust decoder, instead of classic MLP, incorporates axial self-attentive blocks, enabling better interpretation and knowledge aggregation \cite{ho2019axial}. \\
+The last component functions as a robust decoder. Instead of a classic multilayer perceptron, MetNet incorporates axial self-attentive blocks, that enable covering global context within a patch \cite{ho2019axial}.
 
- \noindent An engaging strategy incorporated for the precipitation forecasting problem addressed in a paper published in 2020 - is discretizing variables into small intervals and solving instead of regression, a multi-label classification task. The motivation behind such an approach is that authors assert that the categorical distribution of data stabilizes their training process. 
-
-\subsection{FourCastNet}
-The last model that we want to refer to is FourCastNet \cite{pathak2022fourcastnet}. The motivation behind leveraging it was the tremendous increase in extreme weather events worldwide in recent years and the desire to introduce a model well-suited to high-resolution data.
+ An engaging strategy incorporated for the precipitation forecasting problem addressed in a paper published in 2020, is discretizing variables into small intervals and solving a multi-label classification task instead of a regression problem. The motivation behind such an approach is that authors assert that the categorical distribution of data stabilizes their training process. 
 
 \begin{figure}[!ht]
     \centering
     \includegraphics[scale=0.45]{figures/fourcastnet.png}
-    \caption{FourCastNet architecture}
+    \caption{FourCastNet architecture \cite{pathak2022fourcastnet}}
     \label{fig:fourcastnet}
 \end{figure}
 
+\subsection{FourCastNet} \label{sec:fourcastnet}
+The last model that we want to refer to is FourCastNet \cite{pathak2022fourcastnet}. The motivation behind leveraging it was the tremendous increase in extreme weather events worldwide in recent years and the desire to introduce a model well-suited to high-resolution data.
 
 \subsubsection{Adaptive Fourier Neural Operator}
 
-What sets it apart from its predecessors is the fact that it uses the so-called Adaptive Fourier Neural Operator (AFNO), focusing on combining the Fourier Neural Operator with a self-attention mechanism.
-It also uses a vision transformer backbone that leverages the tokenization of inputs by patch embedding layer - each spatial data is converted to a sequence of $P\text{x}P$ patches, then flattened and projected into high dimensional space.
-Embedded patches are later passed into a transformer encoder that allows different patches to interact with each other thanks to the attention mechanism. \\
+What sets it apart from previously presented architectures is the fact that it uses the so-called Adaptive Fourier Neural Operator (AFNO) \cite{guibas2022adaptive}, focusing on combining the Fourier Neural Operator \cite{li2021fourier} with a self-attention mechanism \cite{vaswani2023attention}.
+It is built with a vision transformer (ViT) backbone \cite{dosovitskiy2021image} that leverages the tokenization of inputs by a patch embedding layer -- spatial data is converted to a sequence of $P\text{x}P$ patches, then flattened and projected into high dimensional space.
+Embedded patches are later passed into a transformer encoder that allows different patches to interact and get some context of each other thanks to the attention mechanism.
 
-\noindent Fourier Neural Operators can model the previously mentioned modeling interaction between each token from spatial space to Fourier space. \\
-
-\noindent Inside the spatial mixing component, tensors are passed through the Fast Fourier Transform (FFT) with frequencies multiplied by kernels and then the inverse Fast Fourier Transform (IFFT) is performed. Due to this process of token mixing happening in Fourier space, the complexity is lower. The entire process might be called a global convolution since multiplication in Fourier space is essentially the same as convolution in spatial space. \\
-
-\noindent The word "Adaptive" in Fourier Neural Operators mainly refers to adjusting the computational complexity even further by:
+Fourier Neural Operators implement global convolution operation that can be interpreted as global token mixing, i.e. channel and spatial mixing. They can model those interactions within Fourier space, therefore mitigating computational complexity. Inside the spatial mixing component presented in Figure \ref{fig:fourcastnet}, tensors are passed through the Fast Fourier Transform (FFT) with frequencies multiplied by kernels and then the Inverse Fast Fourier Transform (IFFT) is performed. The entire process is called a global convolution since multiplication in Fourier space is essentially the same as convolution operation in spatial space. The word "Adaptive" in Fourier Neural Operators mainly refers to adjusting the computational complexity even further by:
 \begin{itemize}
-    \item splitting a kernel of dimension $D\text{x}D$ into several separate blocks,
+    \item splitting a kernels into several separate blocks,
     \item using shared weights by each input token, which significantly reduces the number of model parameters
 \end{itemize}
 
-\noindent Because spatial data in Fourier space focused mainly on low frequencies, a sparse prior was introduced, which can be used to calculate l1 loss by so-called soft thresholding. Channel Mixing is a simple Multi-layer Perceptron that mixes spatial data in the channel dimension.
+%Considering that spatial data in Fourier space is focused mainly on low frequencies, a sparse prior was introduced, which can be used to calculate MAE loss by so-called soft thresholding. 
+Channel Mixing is a simple multilayer perceptron that mixes spatial data in the channel dimension.
 
 \subsubsection{Architecture}
-The architecture itself consists of 12 AFNO blocks and a Linear Decoder that changes the hidden dimension to match the number of predicted features.
-
-\noindent In addition, in the research paper, they presented a division into:
+The architecture itself consists of 12 AFNO blocks and a Linear Decoder that changes the hidden dimension to match the number of predicted features. In addition, in the research paper, they presented a division into:
 \begin{itemize}
-    \item pre-training: which is a simple training that predicts 1-time step into the future
+    \item pre-training: which is a simple training that predicts single step into the future,
     \item fine-tuning: which calculates cost functions and performs backpropagation with autoregressive prediction taken into account
 \end{itemize}
 
-\noindent Total precipitation is extremely challenging to predict having highly sparse features and very different distribution than other features. Therefore they use it as a diagnostic variable and train it on a separate model, which uses AFNO as a backbone.
+Total precipitation is reportedly extremely challenging to predict having highly sparse features and very different distribution than other features. Therefore they use it as a diagnostic variable and train it on a separate model, which uses AFNO as a backbone.
 
 \subsubsection{Additional information}
-The proposed solution is also extremely efficient in terms of computational time due to the usage of different parallelization strategies such as
-\begin{itemize}
-    \item data parallelism: standard batch split across GPUs,
-    \item feature parallelism: TODO,
-    \item spatial parallelism - TODO
-\end{itemize}
-
-\noindent The architecture achieves great results especially in predicting surface winds and hurricane intensity and paths, obtaining results similar to the IFS for short-term predictions. The proposed approach to the prediction of a very difficult feature of precipitation proved to be very good because the model obtains very satisfactory results in this area as well.
+The proposed solution is also extremely efficient in terms of computational time due to the usage of different parallelization strategies such as feature parallelism and spatial parallelism. The architecture achieves great results especially in predicting surface winds and hurricane intensity and paths, obtaining results similar to the IFS \cite{ECMWFIFS} for short-term predictions. The proposed approach to the prediction of a very difficult feature of precipitation proved to be very good because the model obtains very satisfactory results in this area as well.
 
 \subsection{Conclusions}
-All proposed solutions exhibit both similarities and distinctions. We drew inspiration from some of these approaches and incorporated them into our model extensively described in Chapter \ref{chap:model}.
+All proposed solutions exhibit both similarities and distinctions. We drew inspiration from some of these approaches and incorporated them into our model extensively described in Chapter \ref{chap:model}. Each model focuses on 3 main aspects, crucial in the task of weather prediction and in the whole field of working with spatio-temporal data:
+\begin{enumerate}[a)]
+    \item \textbf{Creating an abstract representation of the weather state through embeddings or downsampling}: GraphCast uses $MLP^{Embedder}$ and multi-mesh representation, MetNet includes a spatial downsampler while FourCastNet incorporates AFNO and creates patch embeddings,
+    \item \textbf{Dealing with temporal features}: both MetNet and FourCastNet make use of attention mechanisms, which in recent years achieved outstanding results for all problems dealing with sequentially-structured data, the former additionally introduces recursive ConvLSTM layers, while the latter, like GraphCast, introduce fine tuning with calculations of cost functions in an autoregressive manner,
+    \item \textbf{Capturing spatial relationships}: leveraging strengths of visual transformer backbone in FourCastNet and making use of classic convolutional networks for MetNet.
+\end{enumerate}
 
-\newpage
- \section{Baselines}
- TODO: write about tensors reshaping etc. Or in preprocessing methods chapter.
+The fact of using graph neural networks in GraphCast as a tool to deal with spatio-temporal data and consequently with both points b) and c) was the main inspiration for starting work on our graph model \ref{chap:model}.
+
+ \section{Baselines}\label{chap:baselines}
+%  \subsection{Dummy Regression}
+% The most primitive baseline always returns a mean value calculated on the train set for each data pixel and feature.
+%  \[
+%     \hat{\mathbf{Y}} = \overline{\mathbf{Y}}_{train}
+%  \]
+% I think it will be better to just make a footnote when presenting results than creating entire subchapter for this method.
+
  \subsection{Exponential Smoothing}
+ The first baseline we explored was exponential smoothing -- a method of smoothing time series data using the exponential window function. It was first described by Robert Goodell Brown in 1956 \cite{brown1956exponential} and we are adapting the implementation from the Python library statsmodels \cite{seabold2010statsmodels}. 
+ Time series' are sequences of data points, which means in order to use this method, we had to consider our data as an array of time series. To be precise, for every grid box, we had a series of length $s$ for each feature. When predicting, we need to fit the model for each point on the grid and each feature separately. This causes the method to be very slow during prediction when compared to other baselines. Therefore, it is entirely excluded from analysis in Chapter \ref{chap:report}. The formula for predicting the next state is as follows:
+ \begin{flalign*}
+     &\forall f_i \in \mathbf{f}: \hat{y}^{t+1}_{f_i} = \sum_{j=0}^{s-1}\left( \alpha_{f_i} (1-\alpha_{f_i})^j x^{t-j}_{f_i}\right) + (1-\alpha)^t l_{f_i}
+ \end{flalign*}
+ \noindent where $\alpha_{f_i}$ is the smoothing coefficient and $l_{f_i}$ is the initial fitted value. Both these values are set independently for each value. Here $\mathbf{x}^{t}_{f_i}$ denotes the value of a single grid box from $\mathbf{X}^{t}_{f_i}$.   
+ \WK{This equation does not carry too much information. Write some more about what is actually exponential smoothing -- it is very simple!}
+ 
  \subsection{Simple Linear Regression}\label{chap:slinear}
- This method is essentially a basic linear regression. When predicting a particular feature $f_i$, each sub-model only considers that specific feature in the input. It is a straightforward approach that assumes no correlation between different features and like any linear regression, it follows the basic assumptions of: linearity, independence, homoscedasticity, normality, absence of multicollinearity, and absence of endogeneity. Given that our task clearly deviates from meeting most of the mentioned assumptions, this method yields results that can be considered fairly average.
-\begin{flalign*}
-    &\forall f_i \in \mathbf{f}: \hat{y}^t_{f_i} = \Phi^{slr}_{f_i}(x^{t-1}_{f_i})\\
-    &\hat{Y}^{t} = \begin{bmatrix}
-        \hat{y}^t_{f_1} & ... & \hat{y}^t_{f_n}
-    \end{bmatrix}
-\end{flalign*}
+ This method is essentially a basic linear regression. When predicting a particular feature $f_i$, each sub-model only considers that specific feature in the input. It is a straightforward approach that assumes no correlation between different features and like any linear regression, it follows the basic assumptions of: linearity, independence, homoscedasticity, normality, absence of multicollinearity, and absence of endogeneity \cite{linear-regression-assumptions}. Given that our task clearly deviates from meeting most of the mentioned assumptions, this method yields results that can be considered fairly average. The entire straightforward mechanism of this method consists of taking as input $s$ past weather states and using the Ordinary Least Squares (OLS) algorithm to find the best linear function of those past weather values that fits our data and, as a result, obtain a forecast for the next future timestamp. As mentioned earlier, each of the sub-models in this method performs completely independently -- to forecast at time $t+1$ each feature $f_i$ belonging to the set of features under consideration $\mathbf{f}$, the model responsible for predicting it takes as input $s$ previous weather states with information only about that feature: $\mathbf{X}^{(t-s+1):(t)}_{f_i}$. To obtain the global predicted weather state at time $t+1$, we need to concatenate the outputs of all the sub-models resulting in a global prediction $\hat{\mathbf{Y}}^{t+1}$.
+% \[
+%     \forall f_i \in \mathbf{f}: \hat{\mathbf{Y}}^{t+1}_{f_i} = \Phi^{SLR}_{f_i}\left(\mathbf{X}^{(t-s+1):(t)}_{f_i}\right) 
+% \]
 
+Each grid box prediction can be interpreted as a linear function, as well as the entire weather state forecast for the given feature:
+\begin{flalign*}
+    &\forall f_i \in \mathbf{f}: \hat{y}^{t+1}_{f_i} = b + \sum_{j=0}^{s-1} b_j x^{t-j}_{f_i} \\
+   % &\forall f_i \in \mathbf{f}: \hat{\mathbf{Y}}^{t+1}_{f_i} = \boldsymbol{\beta_0} + \boldsymbol{\beta}\mathbf{X}^{(t-s+1):(t)}_{f_i} \\
+    &\forall f_i \in \mathbf{f}: \hat{\mathbf{Y}}^{t+1}_{f_i} = \boldsymbol{\beta} + \sum_{j=0}^{s-1}\boldsymbol{\beta_j}\mathbf{X}^{t-j}_{f_i}
+\end{flalign*}
+% This simple model predicting the value of feature $f_i$ at time $t$ as a linear function of its values at previous $s$ times.
+\WK{The same situation-- this equation does not tell much. Write in simple words what the model is: predicting the value of feature $f_i$ at time $t$ as a linear function of its values at previous $s$ times.}
 
  \subsection{Linear Regression}\label{chap:linear}
-It follows the same assumptions as \ref{chap:slinear}, but with a tweak. When forecasting the $f_i$ feature, it considers the complete weather state by using all available features as input. This indicate an assumption that different weather features might influence each other. While this approach is still naive linear model, it leads to slightly improved results. \\
+It follows the same assumptions as \ref{chap:slinear}, but with a tweak. When forecasting the $f_i$ feature, it considers the complete weather state by using all available features as input. This indicate an assumption that different weather features might influence each other. While this approach is still a naive linear model, it leads to slightly improved results. 
 
-  \noindent For both \ref{chap:slinear} and \ref{chap:slinear}, we have examined the performance of basic linear regression, as well as regularized versions - ridge, lasso, and elastic net. The outcomes indicate that ridge regression notably outperforms other methods. Further details are provided in the chapter \ref{chap:report}.
-\begin{flalign*}
-    &\forall f_i \in \mathbf{f}: \hat{y}^t_{f_i} = \Phi^{lr}_{f_i}(X^{t-1})\\
-    &\hat{Y}^{t} = 
-    \begin{bmatrix}
-        \hat{y}^t_{f_1} & ... & \hat{y}^t_{f_n}
-    \end{bmatrix} \\
-\end{flalign*}
-\begin{table}[!h]
+The enhanced mechanism proceeds in a manner analogous to its simpler version. Utilizing $s$ past weather states, the OLS algorithm establishes an optimal linear function to predict future weather state from the input data. Each sub-model predicts future weather state at time $t+1$ based on sequences of past weather states containing all available features -- $\mathbf{X}^{(t-s+1):(t)}$. Similarly, to obtain global prediction $\hat{\mathbf{Y}}^{t+1}$, concatenation from sub-models output needs to be performed.
+% \[
+%     \forall f_i \in \mathbf{f}: \hat{\mathbf{Y}}^{t+1}_{f_i} = \Phi^{LR}_{f_i}\left(\mathbf{X}^{(t-s+1):(t)}\right) 
+% \]
+Again it allows us to present both grid box and global prediction as a linear function:
+ \begin{flalign*}
+      &\forall f_i \in \mathbf{f}: \hat{y}^{t+1}_{f_i} = b + \sum_{j=0}^{s-1} \boldsymbol{b}_j \mathbf{x}^{t-j} \\
+     % &\forall f_i \in \mathbf{f}: \hat{\mathbf{Y}}^{t+1}_{f_i} = \boldsymbol{\beta_0} + \boldsymbol{\beta}\mathbf{X}^{(t-s+1):(t)}
+     &\forall f_i \in \mathbf{f}: \hat{\mathbf{Y}}^{t+1}_{f_i} = \boldsymbol{\beta} + \sum_{j=0}^{s-1}\boldsymbol{\beta_j}\mathbf{X}^{t-j}
+ \end{flalign*}
+For both \ref{chap:slinear} and \ref{chap:linear}, we have examined the performance of basic linear regression, as well as regularized versions: ridge, lasso, and elastic net (Table \ref{tab:linear-variations}). The outcomes indicate that ridge regression notably outperforms other methods. Further details are provided in Chapter \ref{chap:report}.
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Method & Loss Function & Regularization term \\
+        \hline
+        Linear & $\sum\limits_{i}(y_i - \hat{y_i})^2$  & $\varnothing$ \\
+        Ridge & $\sum\limits_{i}(y_i - \hat{y_i})^2$  & $\lambda \sum\limits_{j} b_j^2$ \\
+        Lasso & $\sum\limits_{i}(y_i - \hat{y_i})^2$ & $\lambda \sum\limits_{j} |b_j|$ \\
+        Elastic Net & $\sum\limits_{i}(y_i - \hat{y_i})^2$ & $\lambda_1 \sum\limits_{j} b_j^2 + \lambda_2 \sum\limits_{j} |b_j|$  \\
+        \hline
+    \end{tabular}
+    \caption{Examined linear regression variations}
+    \label{tab:linear-variations}
+\end{table}
+\WK{The same}
+ 
+\subsection{Gradient Boosting}
+Due to the state-of-the-art performance in various tabular data-related challenges, their widespread popularity, and their ability to model complex data, we resolve to implement and analyze solutions based on gradient boosting algorithms. The fundamental idea behind gradient boosting lies in the iterative construction of multiple decision trees. Using the gradient boosting algorithm, these trees are generated to improve outcomes and create a more refined representation in each successive iteration. 
+
+By creating a so-called ensemble, these methods combine outputs from individual trees to enhance predictive accuracy. Unlike random forests that create trees in parallel, gradient boosting adds weak learners sequentially. Each tree corrects errors of the previous one by minimizing the derivative of the loss function with respect to the previous model's output, manipulating the speed of this process by employing a learning rate $\eta$. Therefore, ensemble $F$ at step $j$ can be represented as: 
+\[
+    F_j = F_{j-1} + \eta * -\frac{\partial \mathcal{L}}{\partial F_{j-1}}
+\]
+Each of our sub-models predicts the weather state as a combined prediction of all $N$ weak learners in an ensemble:
+\[
+     \forall f_i \in \mathbf{f}: \hat{\mathbf{Y}}^{t+1}_{f_i} = \sum_{j=1}^{N}\eta F_j\left(\mathbf{X}^{(t-s+1):(t)}\right)
+\]
+
+% Their flexibility is further enhanced by the ability to employ distinct hyperparameters for each tree in the ensemble, allowing for fine-tuning and adaptability to diverse aspects of the data.
+
+We chose two widely used methods, XGBoost \cite{Chen_2016} and LightGBM \cite{ke2017lightgbm}, both delivering improved results compared to other baseline methods. While both modes share multiple similarities, the primary distinction lies in their tree construction processes: leaf-wise for XGBoost and level-wise for LightGBM.
+% \begin{flalign*}
+%     &\forall f_i \in \mathbf{f}: \hat{\mathbf{Y}}^{t+1}_{f_i} = \Phi^{GB}_{f_i}\left(\mathbf{X}^{(t-s+1):(t)}\right)
+% \end{flalign*}
+\WK{There is no information in these descriptions about the use of neighbor nodes and their features. (This is described in another chapter) This section on baselines is way too short. The baselines should actually be described in comparable details than the known methods from the literature overview that you covered in the previous sections}
+
+\subsection{Additional information}
+Due to implementation constraints arising from the lack of support for multidimensional regression in the machine learning frameworks we employed, it was necessary to convert our data dimensionality. This process involved transforming it into a 2-dimensional vector for inputs and a 1-dimensional vector for targets and had to be done for both training and evaluation purposes. For this reason, it was crucial to be careful that each input sample was associated with the correct target. 
+
+In the subsequent analysis, we denote the product of latitude and longitude spans as $S$, number of predicted features as $F$ and number of data samples as $N$, additionally we remind that $s$ represented number of input states. The data were transformed in such a way that the last dimension of the input tensor, called by convention the feature dimension, was equal to the product of the number of input states along with the number of predicted features, while the number of samples, latitudes, and longitudes were combined in first dimension -- for both linear regression and gradient boosting trees, each sub-model was fitted/trained on such inputs: $(N*S,s*F)$. The target tensors were transformed for them so that each sub-model would compare and predict the 1-dimensional tensor associated with the feature -- the number of samples and latitudes and longitudes were stored in 1 dimension: $(N*S)$. 
+For a simple linear regression, the situation was a bit simpler with an input tensor that had dimensions: $(N*S, s)$ while output: $(N*S)$, due to the lack of need to use other features than the predicted one for every sub-model.
+
+The situation undergoes a slight shift when employing the neighbor extension described in \ref{chap:neighbors}. The dimensionality of our data expanded and we also dealt with the implementation constraints described above using similar feature aggregation techniques. This process is straightforward, given the number of $n$ neighbors, each one may be interpreted as a new set of features of a size $F$, and therefore our input feature dimensions are expanded to $(N*S, s*F*(n+1))$. The product of the number of weather input features and input sequence length is also multiplied by $n+1$ symbolizing the aggregated features for $n$ neighbors and the reference grid box. 
+
+The inverse transformation, which restored the tensor to its original dimensions, was carried out solely for visualization purposes.
+
+\section{Neural Network Models} \label{NN-theory}
+\subsection{U-net}\label{chap:unet}
+\input{figures/unet}
+The first model we wanted to test was going to be based on Convolutional Neural Networks (CNN). The motivation behind the use of a CNN was the fact that they are widely used in image-related tasks such as segmentation, denoising, or reconstruction. We could interpret our data as an image -- just like an RGB image, it is a three-dimensional array of values. One of the more well-known CNN-based architectures is a U-net \cite{ronneberger2015unet}. The architecture could be used for style transfer \cite{Rao_2021}, which could be interpreted as a global change of values across different layers of the image -- which is exactly what we need.
+
+We have implemented our own version of the standard architecture using PyTorch \cite{paszke2019pytorch}. It consists of 4 blocks of "downscaling" layers which use 2 convolutional layers and a max pooling layer that halves each spatial dimension. They are then followed by another block that ends with a transposed convolution layer, which doubles the spatial dimensions. Continuing, there are 4 blocks that as input take a concatenation of the output from the previous "upscaling" block and the output from a "downscaling" block at the same level (with the same spatial dimensions). The last block does not have a transposed convolution layer at the end.
+
+Each convolutional layer has stride 1 and a kernel of size 3x3 and uses 'reflect' padding to preserve the shape of the image. Due to the fact of the repeated halving of the spatial dimensions, we had to use the slightly larger size of the input data -- the smaller dataset had an odd number of "pixels", which meant that the architecture that halves the spatial dimensions did not work correctly. As a result, the bigger dataset had a shape of 32x48, which can be properly divided by 2 four times without issue.
+
+% As a loss function we used L1 Loss (also called MAE loss). We experimented with other functions, however this one granted the best learning stability and yielded the best results.
+% We will write about that in Chapter 3 with all other technical details
+
+Since border effects could influence the quality of the predictions, we implemented a way to
+%Spatial-Mapping (\ref{spatialmapping}) \WK{It is weird to refer to something that will only be explained later in the text -- a reader has no clue what Spatial-Mapping is at this moment, so what is the point?}
+calculate the loss function using a window that covers only the area of Poland, excluding the outer "pixels" and minimizing border effects.
+
+Later in our work, we have also started using the Spatio-Temporal Embedder (described in detail in section \ref{stembedder}) \WK{The same comment as for Spatial Mapping} before the first layer to add spatial and temporal features to our data in order to slightly improve performance. This means that the input to the first layer has $u + 7$ instead of the standard $f$ features.
+
+\subsection{GNN Model}\label{chap:model}
+% \WK{Why don't you call it Graph NN model?}
+Proposed model, implemented in in PyTorch Geometric \cite{fey2019fast}, similarly as GraphCast can be divided into three components: Encoder, Decoder and a graph neural network in between:
+
+\input{figures/architecture.tex}
+
+\subsubsection{Encoder}
+The first step of constructing our model was to decide how to generate embeddings or generally encode the weather context of our data. Therefore, we leverage an $MLP^{Embedder}$, which is a simple multilayer perceptron that converts feature dimensions into more abstract latent space that stores a better representation of a weather information. After initial encoding, the abstract weather context is concatenated with static features -- a detailed description of this operation and component called $ST^{Embedder}$ is included in Chapter \ref{chap:feat_eng}. After mixing the weather information with static features that include spatial and temporal dependencies and right before propagating through the graph layers, an additional fully connected layer is applied to revert to the earlier hidden size. Furthermore, Layer Normalization is applied at the end to enhance stability and generalization performance \cite{ba2016layer}. Encoder overview is illustrated in Figure \ref{fig:gnn-encoder}.
+
+\input{figures/gnn_encoder}
+
+\subsubsection{GNN}
+Before leveraging the graph layers, we had to decide how to represent the features on the individual components of the graph. Therefore we stated the assumption that our nodes would be represented by individual grid-boxes, and the challenge lies in generating edges and infusing features into them. The proposed edge generation process strongly resembles the neighbors extension employed in the baselines methods \ref{chap:neighbors}. The only distinction is that instead of extending the data as illustrated in Figure \ref{fig:neighbors}, for each node individually, edges are generated to connect all node's neighbors i.e. nodes distant from its center by $r$ (black colored in the figure). Similarly, like in GraphCast, we arranged features in the edges that define its length and the difference between the start and end in the vertical and horizontal axes which might be relevant when learning representation of vector features aware of direction -- such as wind. Be aware of the fact that to obtain these features we performed a mathematical approximation that assumes that a patch of the globe that covers our input space can be represented as a rectangle and that all grid boxes are perfect squares when in reality those shapes are slightly more irregular. Additionally, a scaling coefficient, denoted as $u$, was introduced to regulate the significance of the information derived from all edge features.
+\renewcommand{\arraystretch}{1.25}
+\begin{table}[!ht]
     \centering
     \begin{tabular}{|c|c|}
         \hline
-        Method & Loss Function \\
+        Symbol & Description \\
         \hline
-        Linear & $\sum(y_i - \hat{y_i})^2$ \\
-        Ridge & $\sum(y_i - \hat{y_i})^2 + \lambda \sum w_j^2$ \\
-        Lasso & $\sum(y_i - \hat{y_i})^2+ \lambda \sum |w_j|$ \\
-        Elastic Net & $\sum(y_i - \hat{y_i})^2 +\lambda_1 \sum w_j^2 + \lambda_2 \sum |w_j|$  \\
+        $v_{i}$ & Grid box / graph node\\
+        $\|v_{i}-v_{j}\|^2$ & Euclidian distance between $v_i$ and $v_j$ \\
+        $v_i^x,v_i^y$ & Horizontal and vertical position of $v_i$ \\
+        $u$ & Scaling coefficient \\
+        $\mathbf{e}_{v_i,v_j}$ & Feature vector for edge connecting $v_i$ and $v_j$ \\
+        $\mathbf{c}_i$ & Static features related to node $v_i$ \\
+        $\mathbf{x}_i$ & Weather features related to node $v_i$ \\
+        $\mathbf{v}_i$ & Feature vector for node $v_i$ \\
+        $d$ & Number of feature dimensions inside graph layers \\
         \hline
     \end{tabular}
+\caption{Edge \& node features}
+\label{tab:edge_conv}
 \end{table}
- 
- \[
-    \mathbf{X} \boldsymbol\beta = \mathbf{\hat{Y}}
- \]
-
- \[
+ \renewcommand{\arraystretch}{1}
+\[
+    \mathbf{e}_{v_i,v_j} =
     \begin{bmatrix}
-    x_{11} & x_{12} & \cdots & x_{1n}\\
-    x_{21} & x_{22} & \cdots & x_{2n}\\
-    \vdots & \vdots & \ddots & \vdots\\
-    x_{n1} & x_{n2} & \cdots & x_{nn}
-    \end{bmatrix}
-    \begin{bmatrix}
-    \beta_1\\\beta_2\\ \vdots\\b_n
-    \end{bmatrix}
-    =\begin{bmatrix}
-    \hat{y_1}\\\hat{y_2}\\ \vdots\\\hat{y_n}
+        u(v_j^x - v_{i}^x) & u(v_j^y - v_i^y) & u\|v_{i}-v_{j}\|^2
     \end{bmatrix}
 \]
- \subsection{Gradient Boosting}
-Due to the state-of-the-art performance in various tabular data-related challenges and their widespread popularity, we resolve to implement and analyze solutions based on gradient boosting algorithms. We chose two widely used methods, XGBoost ~\cite{Chen_2016} and LightGBM ~\cite{ke2017lightgbm}, both delivering improved results than other baseline methods. The fundamental idea behind gradient boosting lies in the iterative construction of multiple decision trees. Using the gradient boosting algorithm, these trees are generated to improve outcomes and create a more refined representation in each successive iteration. While XGBoost and LightGBM share multiple similarities, the primary distinction lies in their tree construction processes: leaf-wise for XGBoost and level-wise for LightGBM.  \\
-
-\noindent We also explored CatBoost ~\cite{prokhorenkova2019catboost} and classical AdaBoost algorithms. However, due to significantly longer computation times and results that did not surpass other gradient boosting methods, we decided to exclude them from the further experiments and results comparison phase.
-
-\begin{flalign*}
-    &\forall f_i \in \mathbf{f}: \hat{y}^t_{f_i} = \Phi^{gb}_{f_i}(X^{t-1})\\
-    &\hat{Y}^{t} = 
-    \begin{bmatrix}
-        \hat{y}^t_{f_1} & ... & \hat{y}^t_{f_n}
-    \end{bmatrix} \\
-\end{flalign*}
-\newpage
-\section{Neural Network Models}
-\subsection{UNet}
-\input{figures/unet}
-
-\noindent ... each convolutional layer has 'reflect' mode to preserve exact same shape  ...
-
-\noindent This might be consider baseline too but since achieving very high scores and sharing similar characteristics with gnn it might be described here. TODO: description of architecture.
-\subsection{Main Model}\label{chap:model}
-Proposed model architecture and comparision with GraphCast. \\
-
-\noindent After briefly testing multiple Graph Convolutional Cells that support edge feature vectors, we have concluded that the most promising results and sufficient computation time are obtained by TransformerConv \cite{dwivedi2021generalization} \cite{shi2021masked}.\\
-Message passing in this graph transformer operator is given by formula:
+To build a better representation of the knowledge of the weather conditions, static/exogenous features only dependent of spatial position was incorporated: geopotential, and land-sea mask. Therefore, each node can be represented as a vector of weather and static features:
 \[
-    \mathbf{x}^{\prime}_i = \mathbf{W}_1 \mathbf{x}_i +
+    \mathbf{v}_i = \begin{bmatrix}
+        \mathbf{x}_i^{t-s+1:t} & \mathbf{c}_i
+    \end{bmatrix}
+\]
+After extensively testing multiple graph convolutional cells that support edge feature vectors, we have concluded that the most promising results and sufficient computation time are obtained by TransformerConv \cite{dwivedi2021generalization} \cite{shi2021masked}. Therefore, like the architectures described in the literature review section we incorporated attention mechanism into our network.
+
+Additionally, before each message passing step, so before each propagation through graph layers, a residual connection is applied -- Figure \ref{fig:gnn}. We examined that this allows our network to obtain faster loss function convergence during training. Message passing in this graph transformer operator is given by formula \cite{torch_geometric_transformerconv}:
+\[
+    \mathbf{v}^{\prime}_i = \mathbf{v}_i + ReLU(\mathbf{W}_1 \mathbf{v}_i +
     \sum_{j \in \mathcal{N}(i)} \alpha_{i,j} \left(
-    \mathbf{W}_2 \mathbf{x}_{j} + \mathbf{W}_6 \mathbf{e}_{ij}
-    \right),
+    \mathbf{W}_2 \mathbf{v}_{j} + \mathbf{W}_6 \mathbf{e}_{v_i, v_j}
+    \right))
 \]
 
 where $\alpha_{i,j}$ is denoted as attention coefficient and computed as:
 \[
     \alpha_{i,j} = \textrm{softmax} \left(
-    \frac{(\mathbf{W}_3\mathbf{x}_i)^{\top}
-    (\mathbf{W}_4\mathbf{x}_j + \mathbf{W}_6 \mathbf{e}_{ij})}
+    \frac{(\mathbf{W}_3\mathbf{v}_i)^{\top}
+    (\mathbf{W}_4\mathbf{v}_j + \mathbf{W}_6 \mathbf{e}_{v_i, v_j})}
     {\sqrt{d}} \right)
 \]
 
-\noindent TODO: list what graph cells we've tested.
+Due to the efficient propagation of spatial context within graph layers, our experiments led us to a conclusion that relatively shallow architectures yield satisfactory results e.g. 5 graph layers. Detailed analysis is presented in Section \ref{chap:gnn-layers}.
 
-\noindent Multi-layer perceptron as an embedder converting features dimension into more abstract latent space that stores better representation of weather state.
+\input{figures/gnn.tex}
+\subsubsection{Decoder}
 
-.... \\
-
-\noindent Multi-layer perceptron as a decoder converting encoded features into its natural representation.
-
-
-\begin{flalign*}
-    X = MLP^{Embedder}(X) \\
-    X = GNN_1(X) \\
-    ...         \\
-    X = GNN_N(X) \\
-    \hat{Y} = MLP^{Decoder}(X) \\
- \end{flalign*}
-
- \begin{flalign*}
-    d_{v_i,v_j} &= \sqrt{(v_{j_x} - v_{i_x})^2 + (v_{j_y} - v_{i_y})^2} \\
-    e_{v_i,v_j} &= (v_{j_x} - v_{i_x}, v_{j_y} - v_{i_y}, d_{v_i,v_j})
-\end{flalign*}
-
-\input{figures/architecture.tex}
+The decoder component of our proposed architecture is a simple multilayer perceptron that converts features dimension obtained after exiting the last graph layer into target feature dimensions.
 
 \subsection{Additional techniques and feature engineering}\label{chap:feat_eng}
-Present concept of spatial-mapping, edge attributes. Explain spatial and temporal feature encodings as well as usage of constants like geopotential. 
 
-%% \subsubsection{Constant features}
-\subsubsection{Spatio-Temporal embedder}
-To build a better representation of the knowledge of the weather conditions, constant/exogenous features such as geopotential, and land-sea mask were also used as a model input. In addition, with the help of the so-called Spatio-Temporal embedder - $ST^{Embedder}$, we encoded spatial and temporal information, and concatenated it in the process of forward propagation with the input feature tensor, thus obtaining a better knowledge representation for individual grid-boxes. \\
+\subsubsection{Spatio-Temporal embedder} \label{stembedder}
+With the help of the so-called Spatio-Temporal embedder: $ST^{Embedder}$, we encoded spatial and temporal information, and concatenated it in the process of forward propagation with the input feature tensor, thus obtaining a better knowledge representation for individual grid-boxes. \\
 
-\noindent The encodings for latitude and longitude (lat,lon) of each grid box / node $v_{i,j}$ are represented as:
+The encodings for latitude and longitude (lat,lon) of each grid box $v_{i,j}$ are represented as:
 \[
-\mathbf{u}_{geo, v_{i,j}} =
+\mathbf{u}_{spatial, v_{i,j}} =
 \begin{bmatrix}
     \sin{(2\pi\frac{lat}{180})} &
     \cos{(2\pi\frac{lat}{180})} &
@@ -463,20 +502,18 @@ To build a better representation of the knowledge of the weather conditions, con
 \end{bmatrix}
 \]
 
-\noindent Encoding of time for entire model input at timestamp $t$, where $(d, h)$ represents the day of the year and the hour in a day, is given by:
+We encode information about the day of the year and train our model to identify differences in weather behavior for distinct seasons as well as time of the day. Encoding of time employs only the last timestamp $t$ in the input sequence, $(d, h)$ represents the day of the year and the hour in a day: 
 \[
 \mathbf{u}_{time,t} =
 \begin{bmatrix}
-    \sin{(2\pi\frac{d}{365})} &
-    \cos{(2\pi\frac{d}{365})} &
+    \sin{(2\pi\frac{d}{366})} &
+    \cos{(2\pi\frac{d}{366})} &
     \sin{(2\pi\frac{h}{24})} &
     \cos{(2\pi\frac{h}{24})}
 \end{bmatrix}
 \]
 
-\noindent In the subsequent analysis, we denote the product of latitude and longitude spans as $S$. It represents the flattened spatial dimension of tensors. $B$ stands for the batch size. \\ 
-
-\noindent The concatenation of spatio-temporal features with weather features occurs right after the input tensor passes through the $MLP^{Embedder}$ and before entering graph cells. Following the dense layer, weather representation tensor has dimensions ($B$, $S$, hidden), the $\mathbf{u}_{time}$ tensor (batch, 1, 4), and the $\mathbf{u}_{geo}$ tensor ($B$, $S$, 4). To align the corresponding dimensions of $\mathbf{u}_{time}$ it goes through another dense layer with hidden size: $S$, from which it comes out having shape: ($B$, 1, $S$), after transposing the last two dimensions we will get ($B$, $S$, 1) and ability to concatenate all 3 tensors together creating one with shape: ($B$, $S$, hidden+4+1). The concatenated tensor passes through one more dense layer ultimetaly achieving the dimension ($B$, $S$, hidden') and creating a tensor aware of spatio-temporal context. Then, the forward propagatation through the graph cells of the network occurs.
+In the subsequent analysis, we denote the product of latitude and longitude spans as $S$. It represents the flattened spatial dimension of tensors. $B$ stands for the batch size. The concatenation of spatio-temporal features with weather features occurs right after the input tensor passes through the $MLP^{Embedder}$ and before entering graph cells. Following the dense layer, weather representation tensor has dimensions ($B$, $S$, hidden), the $\mathbf{u}_{time}$ tensor (B, 1, 4), and the $\mathbf{u}_{spatial}$ tensor ($B$, $S$, 4). To align the corresponding dimensions of $\mathbf{u}_{time}$ it goes through another dense layer with hidden size: $S$, from which it comes out having shape: ($B$, 1, $S$). After transposing the last two dimensions we will get ($B$, $S$, 1) and the ability to concatenate all 3 tensors together creating one with shape: ($B$, $S$, hidden+4+1). The concatenated tensor passes through one more dense layer ultimately achieving the dimensions ($B$, $S$, hidden') and creating a tensor aware of spatio-temporal context. Then, the forward propagatation through the graph cells of the network occurs.
 
 \begin{table}[!ht]
     \centering
@@ -486,7 +523,7 @@ To build a better representation of the knowledge of the weather conditions, con
         \hline
         $X = MLP^{Embedder}(X)$ & $(B, S, \text{Hidden})$ \\
         $\mathbf{u}_{time} = Dense(\mathbf{u}_{time})^{\top}$ & $(B, S, 1)$ \\
-        $X = (X \oplus \mathbf{u}_{time} \oplus \mathbf{u}_{geo})$ & $(B, S, \text{Hidden} + 4 + 1)$ \\
+        $X = (X \oplus \mathbf{u}_{time} \oplus \mathbf{u}_{spatial})$ & $(B, S, \text{Hidden} + 4 + 1)$ \\
         $X = Dense(X)$ & $(B, S, \text{Hidden'})$ \\
         \hline
     \end{tabular}
@@ -494,8 +531,9 @@ To build a better representation of the knowledge of the weather conditions, con
     \label{tab:st_embed}
 \end{table}
 
-\subsubsection{Spatial-Mapping}
-Spatial mapping was introduced to extinguish the influence of areas near the boundaries of the input space, which were detrimental to the quality of the prediction. In the original GraphCast architecture, the data spanned the enitre globe, creating a fully connected graph; where our model utilizes data from only a small part of the globe. As the result, vertices located on the space boundaries are connected only to the inner vertices, leading to lack of weather information. Hence, we decided that in the process of training, specifically in cost function computation, and model evaluation only a subspace of the model input is employed. The concept is illustrated in the figure \ref{fig:spatial_map}, actual input dimensions are maintained.
-
+\subsubsection{Spatial-Mapping} \label{spatialmapping}
+Spatial mapping was introduced to extinguish the influence of areas near the boundaries of the input space, which were detrimental to the quality of the prediction. In the original GraphCast architecture
+%, as well as others mentioned in the literature review section, %
+the data spanned the entire globe, creating a fully connected graph. Our model utilizes data from only a small part of the globe, as a result, vertices located on the space boundaries are connected only to the inner vertices, leading to a lack of weather information. Hence, we decided that in the process of training, specifically in cost function computation, and model evaluation only a subspace of the model input, called mapped space is employed. The concept is illustrated in figure \ref{fig:spatial_map}, and actual input dimensions are maintained.
 \input{figures/spatial_map.tex}
  

@@ -2,21 +2,71 @@
 \chapter{Introduction}
 
 \section{Abstract}
-Short introduction to a problem and proposed solution. EMCWF - European Centre for Medium-Range Weather Forecasts - operational research facility that provides data - ERA5.
+The drastically changing climate in recent times has led to a significant increase in interest in the research related to modeling weather and meteorological phenomena. Machine learning scientists are trying to surpass the previous state-of-the-art methods in this field, that leverage numerical computations. 
+
+Given that weather states can be interpreted as highly complex dynamical systems, utilizing deep learning methods appears reasonable due to their flexibility and proficiency in handling complex data. These attributes make them a potentially successful group of techniques in this field.
+
+Attributable to the above statements, in our work, we want to present the forecasting capabilities of straightforward methods of classical machine learning as well as design a more complex model based on graph neural networks. In addition, we will compare the quality of distinct solutions and create a full system with a mobile application presenting the predictive skills of the created architecture. Finally, in a notable achievement, we will integrate our top-performing solution with an arbitrarily selected approach from the numerical weather prediction paradigm -- improving its predictive performance. This accomplishment underscores the potential of enhancing numerical methods through integrating them with advanced deep-learning solutions.
 
 \section{Motivation}
-Emphasize the exponential growth of data worldwide and comparison of NWP and MLP approaches (pros and cons, supercomputers for NWP etc.) with the suggestion that machine learning methods are especially promising for future research and development.
+At the present rate of progress, machine learning methods are applied and often give great promise in almost all areas of our lives. With this work, we would like to add our contribution to this issue with regard to the problem of short-term weather prediction. Until now, the models obtaining the finest results in this area belong to the "Numerical Weather Prediction" (NWP) family. An example of such a solution might be IFS \cite{ECMWFIFS}, incorporated by EMCWF -- "European Centre for Medium-Range Weather Forecasts". Their most significant weakness is that they are computationally very expensive. Supercomputers generating serious carbon footprints are often needed for the model to run effectively. These models attempt to solve complex differential equations with very high precision. Moreover, their prediction time is often very long. 
+For this reason, machine learning-based solutions from the "Machine Learning Weather Prediction" (MLWP) family are becoming increasingly popular, therefore we want to focus on them in our work. The particular example that caused us to get interested in the topic was the publication of a paper "Learning skillful medium-range global weather forecasting" \cite{lam2023graphcast} about GraphCast, further described in Section \ref{sec:graphcast}. 
+
+(pros cons of both NWP, MLWP?)
 
 \section{Goals}
-Obtain sufficient results that allows to confirm thesis that Graph Neural Networks and generally machine learning approaches for weather prediction task is promising and worth developing.
+One of the main goals is to implement and compare the performance of various machine learning models for examined task. Additionally, we want to obtain sufficient results that allow us to support the thesis that graph neural networks and generally machine learning approaches for weather prediction tasks are promising and worth developing.
 
 \section{Scope}
+\subsection{Dataset}
+During our work, we have used the Copernicus Climate Change Service (C3S) Climate Data Store (CDS) "ERA5 hourly data on single levels from 1940 to present" dataset \cite{ERA5}. It contains regularly updated hourly global weather data from 1940 to present -- usually with about 5 days of latency. It is provided by the European Centre for Medium-Range Weather Forecasts (EMCWF) and combines vast amounts of historical observations into global estimates using advanced modelling and data assimilation systems. There are many atmospheric, ocean-wave and land-surface quantities inside, however we have decided to focus on 6 features (Table \ref{tab:data_features}).
+
+\begin{table}[!ht]
+\centering
+\begin{tabular}{|c|c|c|}
+     \hline
+     Symbol & Quantity & Unit \\
+     \hline
+     t2m & Temperature at 2m above ground & $^{\circ}$C \\
+     sp & Surface pressure & hPa \\
+     tcc & Total cloud cover & (0 - 1) \\
+     u10 & 10m U wind component & $m/s$ \\
+     v10 & 10m V wind component & $m/s$ \\
+     tp & Total precipitation & mm \\
+     \hline
+     lsm & Land-sea mask (not predicted) & (0 - 1) \\
+     z & Geopotential (not predicted) & $m^2/s^2$ \\
+     \hline
+\end{tabular}
+\caption{Weather features we considered. Some of the units differ from those provided in the dataset. These have been converted for our convenience}
+\label{tab:data_features}
+\end{table}
+
+These features were determined by us to be the most useful, and during our proceedings the models will attempt to accurately predict them. Apart from the self-explanatory, the U and V wind components represent the speed of wind moving towards the east and the north respectively. We also used 2 other quantities that provide additional information to our neural network models -- a binary land-sea mask and geopotential, which is the gravitational potential energy of a unit mass, which can be interpreted as a measure of orography. These two features are never predicted.
+
+During our work, we have used many different timespans of the dataset, always from 2018 - 2023. Most commonly, we used 2019 - 2022, since that can be easily divided into the training, validation, and test datasets, with each having a full year worth of data. More details on our use of the dataset can be found in Section \ref{chap:dataset}.
 
 \subsection{Models}
-Survey multiple machine learning models and a lighter version of GraphCast architecture. Perform experiments, compare results with ground truth weather states dataset ERA5 and SOTA/topline solution based on fluid dynamics or other related to Numerical Weather Prediction approach.
+The research part of our thesis will be primarily devoted to the implementation and analysis of machine learning models. Based on the literature review, we will attempt to leverage the techniques used in examined state-of-the-art solutions into our primary model. For all implemented solutions, we will conduct numerous experiments checking, among other things, the quality of forecasting depending on the length of the model's input sequence (i.e., the past time steps the model has access to) and also how the models perform with increasing forecasting horizon (the number of forecasted future time steps). In addition, to obtain the estimation of optimal performance per model, we will perform hyperparameter optimizations for each. Lastly, we will compare the quality of prediction with the ERA5 dataset adopted as ground truth weather states and the topline solution, based on the Numerical Weather Prediction paradigm. 
+% Survey multiple machine learning models and a lighter version of GraphCast architecture. Perform experiments, compare results with ground truth weather states dataset ERA5 and SOTA/topline solution based on fluid dynamics or other related to Numerical Weather Prediction approach.
 
 \subsection{App}
-Create a robust and reliable application with API that communicate with our best model.
+In this section of the thesis, we will focus on another aspect of our machine learning system for short-term weather prediction – the mobile application and its integration with an API. Our primary goal is to examine the functionality and structure of the application, serving as a conduit for users to access predictions generated by our model.
+
+The application plays a pivotal role in facilitating communication with our machine learning model through an Application Programming Interface (API). This enables users to access predictive insights seamlessly, providing an accessible means to leverage advanced weather forecasting. Utilizing Android Studio, Google's official integrated development environment for Android, the mobile application is designed to offer a user-friendly experience. The emphasis is not only on the predictions but also on ensuring the application's overall functionality and structure allow users to navigate and interpret information effortlessly.
+
+Additionally, we explore the architecture of the API supporting this system. As a critical component in enabling communication between the application and the machine learning model, we delve into the construction and deployment of the API, essential for the robustness and reliability of our system.
+
 
 \section{Methodology}
-Definition of Agile and description of launched habits e.g. our live-coding and brain-storming sessions. 
+The most crucial foundation of any project developed within a group is effective communication and planning of undertaken actions. Central to our approach is the adoption of Agile principles, emphasizing adaptability and collaboration throughout the project's lifecycle.
+
+Agile methodology served as the guiding framework, allowing us to navigate the complexities of software development. A pivotal aspect of our methodology involves weekly, digital live-coding sessions. These sessions foster real-time collaboration among team members, enabling them to collectively address challenges, share insights, and iteratively refine the codebase. They also served as a good motivation to consistently start working, knowing that there would always be someone to help overcome any obstacles encountered. The fluidity of live-coding sessions aligns with Agile principles, ensuring that our development process remains responsive to evolving requirements and feedback.
+
+In addition to live-coding, our methodology incorporates brainstorming sessions as a means to cultivate creative problem-solving and ideation. These collaborative gatherings serve as a forum for team members to share perspectives, propose innovative solutions, and collectively shape the trajectory of the project. By fostering an environment conducive to open dialogue and idea exchange, we harness the collective intelligence of the team to make informed decisions and enhance the overall quality of our machine learning system.
+
+Furthermore, we employed modern collaborative tools to streamline our development process. Code is stored and shared through GitHub, providing a centralized repository for version control and collaborative code management. Communication within the team was facilitated through platforms such as Discord and Messenger, enabling real-time discussions, progress updates, and quick resolution of queries. These tools played a pivotal role in enhancing communication and coordination, essential elements in the successful execution of an Agile methodology within a team setting.
+
+These methods contributed to the flexibility and responsiveness crucial for successfully navigating the challenges inherent in the development of a complex machine learning system. 
+
+\section{Author-Specific Contributions}

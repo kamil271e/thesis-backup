@@ -182,7 +182,7 @@ Poznan University of Technology\\Faculty of Computing and Telecommunication\\Ins
 \if@pppolish%
 Sk{\l}ad przy u{\.z}yciu systemu \LaTeX{} na platformie Overleaf.
 \else%
-Typeset using \LaTeX\.
+Typeset using \LaTeX.
 \fi
 
 \end{minipage}
