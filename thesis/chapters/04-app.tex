@@ -3,7 +3,7 @@
 \section{Overview}
 The MeteoMind application is a user-friendly tool designed for Android devices. Developed using Kotlin in the Android Studio IDE, this application integrates with our best neural network model to provide precise weather predictions. The main feature involves connecting to an API that houses the neural network model, allowing users to access cyclically generated, future weather forecasts. Application works for devices that run at least Android 11 and newer. Internet connection is required for the app to work properly and it is recommended to allow access to device's location for improved user experience. 
 
-The application logo was created using Inkscape\cite{inkscape}, a free and open-source vector graphics editor.
+The application logo was created using Inkscape \cite{inkscape}, a free and open-source vector graphics editor.
 
 \input{figures/meteomind_logo}
 
@@ -23,11 +23,11 @@ The \textit{WeatherFragment} class displays the weather data. It uses the Google
 
 The \textit{SearchBar}, which is positioned on top of the fragment, is a component that allows the user to input search queries for locations. It is initialized with the Google Places API key. When the user types in the \textit{SearchBar}, it triggers the \textit{placesAutocomplete} function, which sends a request to the Google Places API to get autocomplete predictions for the input text. 
 
-The \textit{SearchView} is a component that displays the search results. It contains a \textit{RecyclerView} that is used to display a list of autocomplete predictions. The \textit{SearchView} is hidden by default and is shown when the user starts typing in the \textit{SearchBar}. When a search result is clicked, the \textit{getPlaceByResult} function is called, which fetches the details of the selected place from the Google Places API and updates the \textit{SearchBar} text with the selected location's name. The \textit{SearchView} and \textit{SearchBar} are linked together such that when a location is selected from the search results, the \textit{SearchView} is hidden and the \textit{SearchBar} is updated with the selected location's name. The weather data for the selected location is then fetched and displayed. When nothing is typed in a \textit{SerachView} it displays \textit{LocationViewModel}, which is a history of searched locations. Thanks to that, user can instantly select location for which the weather they want to get. The \textit{LocationViewModel} retrieves location data from the \textit{LocationRepository}, which interacts with the \textit{LocationDatabase} to perform CRUD operations on the Location data. 
+The \textit{SearchView} is a component that displays the search results. It contains a \textit{RecyclerView} that is used to display a list of autocomplete predictions. The \textit{SearchView} is hidden by default and is shown when the user starts typing in the \textit{SearchBar}. When a search result is clicked, the \textit{getPlaceByResult} function is called, which fetches the details of the selected place from the Google Places API and updates the \textit{SearchBar} text with the selected location's name. The \textit{SearchView} and \textit{SearchBar} are linked together such that when a location is selected from the search results, the \textit{SearchView} is hidden and the \textit{SearchBar} is updated with the selected location's name. The weather data for the selected location is then fetched and displayed. When nothing is typed in a \textit{SearchView} it displays \textit{LocationViewModel}, which is a history of searched locations. Thanks to that, user can instantly select location for which the weather they want to get. The \textit{LocationViewModel} retrieves location data from the \textit{LocationRepository}, which interacts with the \textit{LocationDatabase} to perform CRUD operations on the Location data. 
 
 \input{figures/app_weather}
 
-The \textit{WeatherFragment} also contains a custom \textit{ParticleView} for displaying weather animations such as falling snowflakes or raindrops and a \textit{WeatherView} for displaying the current weather data. The weather data is updated whenever a new location is selected or when the weather data for the current location changes. \textit{WeatherView} is enriched with custom-made vector graphics, created using Inkscape software. The weather icons are selected based on the weather conditions for a given time. The conditions are determined by the values of tp, tcc, and t2m variables. 
+The \textit{WeatherFragment} also contains a custom \textit{ParticleView} for displaying weather animations such as falling snowflakes or raindrops and a \textit{WeatherView} for displaying the current weather data. The weather data is updated whenever a new location is selected or when the weather data for the current location changes. \textit{WeatherView} is enriched with custom-made vector graphics, created using Inkscape \cite{inkscape} software. The weather icons are selected based on the weather conditions for a given time. The conditions are determined by the values of tp, tcc, and t2m variables. 
 
 \begin{itemize}
     \item tp (Total Precipitation): If tp is less than 0.1, it means there is no significant precipitation, and the icon selection will be based on cloud cover (tcc). If tp is greater than or equal to 0.1, it means there is precipitation, and the icon selection will be based on both the temperature (t2m) and cloud cover (tcc).
@@ -51,8 +51,9 @@ The fragment also includes a set of floating action buttons that allow the user 
 
 \section{API}
 
-\noindent The API is utilising the FastAPI \cite{fastapi} Python library, and is composed of three endpoints: "/weather", "/maps" and "/info". The first request type takes two parameters; longitude and latitude of desirable location that we want obtain the weather to. Despite having data with the precision up to .25 degrees, the API can return the result for any given variables (within the range 55$^{\circ}$N 14$^{\circ}$E to 49$^{\circ}$N 25$^{\circ}$E), thanks to applied bi-linear interpolation. 
+The API is utilising the FastAPI \cite{fastapi} Python library, and is composed of three endpoints: "/weather", "/maps" and "/info". The first request type takes two parameters; longitude and latitude of desirable location that we want obtain the weather to. Despite having data with the precision up to .25 degrees, the API can return the result for any given variables (within the range 55$^{\circ}$N 14$^{\circ}$E to 49$^{\circ}$N 25$^{\circ}$E), thanks to applied bi-linear interpolation. 
 
+\begin{figure}
     \begin{lstlisting}[language=json]
     {
       "lat": 49.7128,
@@ -73,8 +74,9 @@ The fragment also includes a set of floating action buttons that allow the user 
     }
     \end{lstlisting}
     \captionof{lstlisting}{Example of returned JSON with one timestamp}
+\end{figure}
 
-\noindent The "maps" endpoint responds with sending a compressed directory that contains colormaps for three features, total precipitation, total cloud cover and 2 metre temperature as well as legend for each one of them that shows the scale of values. The maps were generated using matplotlib \cite{Hunter:2007} and cartopy \cite{Cartopy} libraries for Python. Colormaps represeting features like total precipitation or total cloud cover have fixed ranges and corresponding colors while for 2m temperature they differ based on minimum and maximum values in the forecasting horizon.
+The "maps" endpoint responds with sending a compressed directory that contains colormaps for three features, total precipitation, total cloud cover and 2 metre temperature as well as legend for each one of them that shows the scale of values. The maps were generated using matplotlib \cite{Hunter:2007} and cartopy \cite{Cartopy} libraries for Python. Colormaps representing features like total precipitation or total cloud cover have fixed ranges and corresponding colors while for 2m temperature they differ based on minimum and maximum values in the forecasting horizon.
 
 \input{figures/api_maps.tex}
 

@@ -5,27 +5,21 @@ During model development, it became evident that a systematic approach, outlined
 
 \input{figures/project_structure}
 
+\paragraph{Data Processor}  \mbox{} \\
+\noindent The Data Processor is responsible for processing and loading input data from the ERA 5 dataset. Its primary components include the Loader and Preprocessor. The Loader's functions encompass loading data and converting units to the appropriate type. The Preprocessor manages the preprocessing of data essential for model training. It's functionality is used widely between baselines and neural nets. You can find additional details regarding preprocessing methods in Chapter \ref{chap:preprocesing}.
 
-\subsection{Data Processor}
+\paragraph{Baseline Regressor}\mbox{} \\ 
+\noindent The Baseline Regressor is the foundational model that has simple functions for fitting, evaluating, and predicting. Exponential Smoothing, Simple Linear Regression, Linear Regression, and Gradient Boosting all inherit the Baseline Regressor functions and use altered versions of them for their purposes. Details regarding baselines are provided in Chapter \ref{chap:baselines}.
 
-The Data Processor is responsible for processing and loading input data from the ERA 5 dataset. Its primary components include the Loader and Preprocessor. The Loader's functions encompass loading data and converting units to the appropriate type. The Preprocessor manages the preprocessing of data essential for model training. It's functionality is used widely between baselines and neural nets. You can find additional details regarding preprocessing methods in the \ref{chap:preprocesing} chapter.
+\paragraph{Trainer} \mbox{} \\
+\noindent Both of our neural network models have the Trainer component, where all functionality related to training, predicting, and evaluating was implemented.
 
-\subsection{Baseline Regressor}
+\paragraph{HPO and Analysis} \mbox{} \\
+\noindent Within the Hyperparameter Optimization (HPO) component, we created a pipeline to obtain the best hyperparameters for the baselines, using the Optuna library in Python. Further details are provided in Chapter \ref{chap:hpo}.
+Inside the Analysis component all models undergo evaluation for input size length and number of predicted steps. Moreover, the GNN undergoes evaluation for the number of graph layers. The results of this evaluation are presented in Section \ref{chap:analysis}
 
-The Baseline Regressor is the foundational model to which our other baselines add new functionalities. It includes all the essential functions for other models to build upon. Exponential Smoothing, Simple Linear Regression, Linear Regression, and Gradient Boosting share fundamental components among themselves while also having added functionalities. Details regarding baselines are provided in the Chapter \ref{chap:baselines}.
-
-\subsection{Trainer}
-
-Both of our neural network models have the Trainer component, where all functionality related to training, predicting, and evaluating was implemented.
-
-\subsection{HPO -- Hyperparameter Optimization and Analysis}
-
-Within the Hyperparameter Optimization (HPO) component, we created a pipeline to obtain the best hyperparameters for the baselines, using the Optuna library in Python. Further details are provided in Chapter \ref{chap:hpo}.
-Inside the Analysis component all models undergo evaluation for Input Size Length and Number of Predicted Steps. Moreover, the GNN undergoes evaluation for the number of graph layers. The results of this evaluation are presented in \ref{chap:analysis}
-
-\subsection{Experiments and Analysis}
-
-The Experiments section of our project is devoted to testing novel methods and ideas aimed at enhancing our models. Paired with the Analysis section, it has proven to be a valuable tool in our development process. More details in Chapter \ref{chap:exp}.
+\paragraph{Experiments} \mbox{} \\
+\noindent The Experiments section of our project is dedicated to testing novel methods and ideas aimed at enhancing our models. We check the correlation between the models and assess the possibility of combining the predictions of the topline with our model to improve its performance.
 
 \section{Dataset description}\label{chap:dataset}
 % Description of dataset, train, val, test split, resoution of data, generally all details.
@@ -33,11 +27,32 @@ As mentioned previously, the data we used came from the Copernicus Climate Chang
 
 We used a subset of the archive, usually using 3-year period to construct the training, validation and testing datasets each containing a full year. When creating and testing the methods, we used 2019-2021 year span. We mostly did not use 2023, since the entire year has not passed yet for most of our work. In the app and our API, we use data from a week before the date of use, since it was the easiest way to present our work without paying a steep price for appropriately formatted live data.
 
-As mentioned in Table \ref{tab:data_features}, we used 6 features for prediction and evaluation, and 2 additional variables as bonus data inputs to improve our neural networks. Since the data is divided into 6 hour intervals, this means that we get measurements from 00:00, 06:00, 12:00 and 18:00 of every day -- therefore for all variables except total precipitation, the data has to be downsampled by subsampling. For total precipitation, it is the amount accumulated during the 6 hour window from the previous timestamp.
+\begin{table}[!ht]
+\centering
+\begin{tabular}{|c|c|c|}
+     \hline
+     Symbol & Quantity & Unit \\
+     \hline
+     t2m & Temperature at 2m above ground & $^{\circ}$C \\
+     sp & Surface pressure & hPa \\
+     tcc & Total cloud cover & (0 - 1) \\
+     u10 & 10m U wind component & $m/s$ \\
+     v10 & 10m V wind component & $m/s$ \\
+     tp & Total precipitation & mm \\
+     \hline
+     lsm & Land-sea mask (not predicted) & (0 - 1) \\
+     z & Geopotential (not predicted) & $m^2/s^2$ \\
+     \hline
+\end{tabular}
+\caption{Weather features we considered. Some of the units differ from those provided in the dataset. These have been converted for our convenience}
+\label{tab:data_features2}
+\end{table}
+
+As mentioned in Table \ref{tab:data_features2}, we used 6 features for prediction and evaluation, and 2 additional variables as bonus data inputs to improve our neural networks. Since the data is divided into 6 hour intervals, this means that we get measurements from 00:00, 06:00, 12:00 and 18:00 of every day -- therefore for all variables except total precipitation, the data has to be downsampled by subsampling. For total precipitation, it is the amount accumulated during the 6 hour window from the previous timestamp.
 
 Since we are focusing just on Poland, we have determined that the coordinates 55$^{\circ}$N 14$^{\circ}$E and 49$^{\circ}$N 25$^{\circ}$E are able to encapsulate the entirety of the country, without leaving much around it -- Poland is quite square (with the exception of the southern border that has a slight slant to it). This is the area that we evaluate our models on.
 
-However, for our neural networks we needed a slightly bigger area to minimize border effects. Additionally, we needed the area to create an array with a shape divisible by $2^5$ in order for the U-net architecture to work correctly. This meant that for those we used the coordinates of 55.75$^{\circ}$N 13.25$^{\circ}$E and 48$^{\circ}$N 25$^{\circ}$E to create the dataset (meaning 32x48 grid boxes).
+However, for our neural networks we needed a slightly bigger area to minimize border effects. Additionally, we required the area to create an array with a shape divisible by $2^5$ in order for the U-net architecture to work correctly. This meant that for those we used the coordinates of 55.75$^{\circ}$N 13.25$^{\circ}$E and 48$^{\circ}$N 25$^{\circ}$E to create the dataset (meaning 32x48 grid boxes).
 
 The map is divided into grid boxes of resolution 0.25 by 0.25 degrees. This translates to a square with a side of about 28km at the equator. Due to the shape of the Earth, this means that the boxes are more complex shapes, with the north-south length still being about 28km, and the east-west length being slightly shorter on the northern side than on the southern side, both about 17km in length at our latitude.
 
@@ -46,30 +61,13 @@ The dataset can be easily downloaded from an API \footnote{\url{https://cds.clim
 
 \section{Data analysis}
 In this section, an examination of a set of target features is conducted. It is important to note that the analyzed data represents our test set, i.e. all weather states in Poland throughout 2021, with data collected at 6-hour intervals. Figure \ref{fig:dist} below represents distributions of the occurrence of the features during this period. Detailed statistics related to each feature are presented in Table \ref{tab:stats}.
+
 \begin{figure}[!ht]
     \centering
     \includegraphics[scale=0.4]{figures/feature_dist.pdf}
     \caption{Feature distributions -- year 2021}
     \label{fig:dist}
 \end{figure} 
-
-% \begin{figure}[!ht]
-%     \centering
-% \begin{tabular}{lllll}
-% \toprule
-%      & Mean & Standard Deviation & Skewness & Kurtosis \\
-%     \midrule
-%     t2m & 8.575639 & 9.021646 & 0.009954 & -0.416774 \\
-%     sp & 991.730286 & 20.814014 & -1.214771 & 1.940067 \\
-%     tcc & 0.674897 & 0.359240 & -0.710991 & -1.029664 \\
-%     u10 & 1.067543 & 2.924007 & 0.145360 & 0.863331 \\
-%     v10 & 0.368444 & 2.674111 & -0.003036 & 0.357381 \\
-%     tp & 0.087919 & 0.311576 & 9.773823 & 171.063156 \\
-%     \bottomrule
-%     \end{tabular}
-%         \caption{Feature statistics - year 2021}
-%     \label{tab:stats}
-% \end{figure}
 
 \begin{figure}[!ht]
     \centering
@@ -89,7 +87,7 @@ In this section, an examination of a set of target features is conducted. It is 
     \label{tab:stats}
 \end{figure}
 
-The plots assigned to temperature, and winds seem to be balanced, while the distribution of pressure is a little left skewed. Cloud cover, however, presents a more challenging scenario, it has two distinct peaks close to the extreme values (i.e. no clouds and full cloud cover) -- indicating highly imbalanced distribution. The precipitation feature emerges the most extreme, which is an expected result due to the early indications, e.g. contained in chapter 3, stating that this is the feature with the most difficult distribution, often not correlated with the others and requiring special treatment.In summary, based on these distributions, target features can be categorized into two groups: those with relatively straightforward distributions (t2m, sp, u10, v10) for which prediction may be less challenging, and those with more intricate distributions, whose prediction might be an extremely difficult task. 
+The plots assigned to temperature, and winds seem to be balanced, while the distribution of pressure is a little left skewed. Cloud cover, however, presents a more challenging scenario, it has two distinct peaks close to the extreme values (i.e. no clouds and full cloud cover) -- indicating highly imbalanced distribution. The precipitation feature emerges the most extreme, which is an expected result due to the early indications, e.g. contained in Chapter \ref{sec:fourcastnet}, stating that this is the feature with the most difficult distribution, often not correlated with the others and requiring special treatment.In summary, based on these distributions, target features can be categorized into two groups: those with relatively straightforward distributions (t2m, sp, u10, v10) for which prediction may be less challenging, and those with more intricate distributions, whose prediction might be an extremely difficult task. 
 
 
 \section{Topline}
@@ -118,184 +116,90 @@ We have examined other ways to standardise our data, such as RobustScaler and Ma
 
 \section{Hyperparameters optimization} \label{chap:hpo}
 
-To optimize the performance of our baseline models, specifically Simple Linear Regression, Linear Regression, and Gradient Boosting Trees, we conducted hyperparameter optimization using the Optuna library in Python, which employs Bayesian optimization \cite{snoek2012practical} with a Tree-Structured Parzen Estimator ~\cite{watanabe2023treestructured}.
+To optimize the performance of our baseline models, specifically Simple Linear Regression, Linear Regression, and Gradient Boosting Trees, we conducted hyperparameter optimization on the validation set using the Optuna library in Python, which employs Bayesian optimization \cite{snoek2012practical} with a Tree-Structured Parzen Estimator ~\cite{watanabe2023treestructured}.
+
+For the purpose of achieving a singular score for a given solution, we introduced the so-called $\Tilde{\mathcal{L}}_{RMSE}$ metric. It is the mean of RMSE for each normalized (standardized) predicted feature and its target. It helps us easily approximate model performance and perform analysis in further sections while also serving as an objective function for our optimization process.
 
 \subsection{Bayesian optimization and Tree-Structured Parzen Estimator}
 Bayesian optimization is a method for determining model hyperparameters without directly optimizing its function -- it operates without requiring knowledge of the inner workings of a model. The main distinction between Bayesian optimization and other methods, such as Grid search and Random search, lies in its utilization of the history of chosen parameters to inform the selection of the next best combination. In essence, Bayesian optimization considers past hyperparameters and their corresponding scores to determine the optimal parameters for the next iteration.
 
-The process involves collecting the performance metric values for a starting set of hyperparameters. Bayesian optimization then constructs a probability model, known as a surrogate model. This surrogate model is trained on the relationship between the performance metric and the hyperparameters. When obtaining new information, surrogate model is updated to incorporate the latest results. A selection function, commonly the Expected Improvement\cite{ament2024unexpected}, is then employed to identify the group of hyperparameters that maximizes this function, guiding the optimization process. The whole procedure is finished when maximum number of iterations is reached.
+The process involves collecting the performance metric values for a starting set of hyperparameters. Bayesian optimization then constructs a probability model, known as a surrogate model. This surrogate model is trained on the relationship between the performance metric and the hyperparameters. When obtaining new information, surrogate model is updated to incorporate the latest results. A selection function, commonly the Expected Improvement \cite{ament2024unexpected}, is then employed to identify the group of hyperparameters that maximizes this function, guiding the optimization process. The whole procedure is finished when maximum number of iterations is reached.
 
 In the case of the Tree-Structured Parzen Estimator, the base sampler in our chosen optimization library, Optuna, deviates from the basic Bayesian optimization approach. Instead of directly using the probability of the model performance metric mapped to hyperparameters, it utilizes Bayes' rule as its surrogate model. This approach results in a more accurately assessed probability of the score in relation to parameters. After creating the surrogate model, Optuna fits two Gaussian Mixture Models to obtain two distributions for the hyperparameters: one $l(x)$ where the score value is less than the threshold, and another $g(x)$ where the score value is more than the threshold. The Tree-Structured Parzen Estimator aims to maximize the ratio $l(x)/g(x)$, as it is proportional to Expected Improvement. This iterative process leads to obtaining the next set of hyperparameters for optimization.
 
 \subsection{Baseline optimization}
-During the hyperparameter optimization for Simple Linear Regression, Linear Regression, and Gradient Boosting Trees, we chose to conduct 60 iterations of optimization. This approach resulted in favorable outcomes within a reasonable timeframe. Each of our baselines had multiple parameters optimized:
-\begin{itemize}
-    \item Simple Linear Regression and Linear Regression optimized parameters:
-    \begin{itemize}
-        \item \emph{alpha} -- coefficient that multiplies the penalty terms
-        \item \emph{regressor\_type} -- one of three regressors: \emph{Ridge}, \emph{ElasticNet}, \emph{Lasso}
-    \end{itemize}
-    \item Gradient Boosting optimized parameters:
-    \begin{itemize}
-        \item \emph{n\_estimators} -- number of boosting trees / algorithm iterations
-        \item \emph{max\_depth}
-        \item \emph{learning\_rate}
-        \item \emph{reg\_alpha} -- L1 regularization term
-        \item \emph{reg\_lambda} -- L2 regularization term
-        \item \emph{num\_leaves}
-    \end{itemize}
-\end{itemize}
+During the hyperparameter optimization for Simple Linear Regression, Linear Regression, and Gradient Boosting Trees, we opted for 60 iterations of optimization. This approach yielded favorable outcomes within a reasonable timeframe. Each of our baselines had multiple parameters optimized. In the case of linear regression and simple linear regression, we optimized the alpha parameter, a coefficient that multiplies the penalty terms. For regressions, we also employed Optuna to assist in selecting the best regularization technique from Ridge, ElasticNet and Lasso.
 
-\subsubsection{Best Parameters}
-[***Do we prefer the list view or description of best parameters or none at all ?***]
-[In the case of the linear regression models, the optimizer concluded that alpha of slightly above 0.1 and the Ridge regression type were the best. Czy coś w tym stylu]
-Obtained best parameters for our baselines:
-\begin{itemize}
-    \item Simple Linear Regression best parameters:
-    \begin{itemize}
-        \item \emph{alpha} -- $0.1004$
-        \item \emph{regressor\_type} -- \emph{Ridge}
-    \end{itemize}
-    \item Linear Regression best parameters:
-    \begin{itemize}
-        \item \emph{alpha} -- $0.1007$
-        \item \emph{regressor\_type} -- \emph{Ridge}
-    \end{itemize}
-    \item Gradient Boosting best parameters:
-    \begin{itemize}
-        \item \emph{n\_estimators} -- $370$
-        \item \emph{max\_depth} -- $34$
-        \item \emph{learning\_rate} -- $0.0455$
-        \item \emph{reg\_alpha} -- $0.25$
-        \item \emph{reg\_lambda} -- $0.0028$
-        \item \emph{num\_leaves} -- $45$
-    \end{itemize}
-\end{itemize}
+In the case of Gradient Boosting, our focus was on optimizing the learning rate, maximum depth, and number of leaves. Throughout this process, we also optimized \emph{reg\_alpha} and \emph{reg\_lambda}, corresponding to L1 and L2 regularization terms, respectively. The last parameter optimized for Gradient Boosting is \emph{n\_estimators}, representing the number of boosting trees.
+
+\paragraph{Best Parameters} \label{chap:best_params}\mbox{} \\
+\noindent In the case of simple linear regression and linear regression, the optimizer determined that an alpha slightly above 0.1 and Ridge regression yield the best results for both models. 
+
+Regarding Gradient Boosting, the optimal values determined are \emph{n\_estimators} at 370, \emph{max\_depth} at 34, and \emph{num\_leaves} at 45. For the floating-point parameters, \emph{reg\_alpha} and \emph{reg\_lambda}, the optimized values are approximately 0.25 and 0.003, respectively. Finally, the best obtained \emph{learning\_rate} is around 0.05. Additionally lightGBM gave the best results compared to xgboost and other alike.
 
 
 \section{Map generation}
-When presenting maps for our models, we employed the \textit{Cartopy} \cite{Cartopy} library in \textit{Python}. \textit{Cartopy} is a well-known tool for generating intricate maps that functions based on the \textit{Matplotlib} \cite{Hunter:2007} plotting library.
-The output of our models is a single multi-dimensional array for each feature at each timestamp. This structure facilitates easy display of our map in image form (Figure \ref{fig:raw_image}). However, when visualized using \textit{Matplotlib}, the image is not easily interpretable.
+When presenting maps for our models, we employed the Cartopy \cite{Cartopy} library in Python. Cartopy is a well-known tool for generating intricate maps that functions based on the Matplotlib \cite{Hunter:2007} plotting library.
+The output of our models is a single multi-dimensional array for each feature at each timestamp. This structure facilitates easy display of our map in image form (Figure \ref{fig:raw_image}). However, when visualized using Matplotlib, the image is not easily interpretable.
 
 \begin{figure}[!ht]
     \centering
-    \includegraphics[width=.5\textwidth]{figures/raw_image.png}
+    \includegraphics[width=.5\textwidth]{figures/plain_map.pdf}
     \caption{Model output displayed as a raw image}
     \label{fig:raw_image}
 \end{figure}
 
-For map creation, we utilized the \textit{Cartopy}’s version of \textit{Matplotlib}’s \textit{contourf} function. \textit{Contourf} automatically selects appropriate color levels within our output image, draws contour lines, and fills spaces between them with the given color. The lines produced by \textit{contourf} offer a clear visual output, making it easier to identify proper levels on the image. Also, this approach enhances the image resolution as the drawn contours exhibit higher quality.
+For map creation, we utilized the Cartopy’s version of Matplotlib’s \textit{contourf} function. \textit{Contourf} automatically selects appropriate color levels within our output image, draws contour lines, and fills spaces between them with the given color. The lines produced by \textit{contourf} offer a clear visual output, making it easier to identify proper levels on the image. Also, this approach enhances the image resolution as the drawn contours exhibit higher quality.
 
-Moreover, we incorporated border and coastline lines into the plot for improved visual reference. Finally, using the transform argument for \textit{contourf}, we employed \textit{Cartopy}’s \textit{Plate Carree} projection to align our image with the borders. \textit{Plate Carree} is a straightforward map projection, mapping meridians to vertical lines and latitudes to horizontal lines. Although it results in a somewhat distorted image of the Earth, \textit{Plate Carree} is widely used across various fields due to its simple relationship between pixel position and coordinates on a map.
+Moreover, we incorporated border and coastline lines into the plot for improved visual reference. Finally, using the transform argument for \textit{contourf}, we employed Cartopy’s \textit{Plate Carree} projection to align our image with the borders. \textit{Plate Carree} is a straightforward map projection, mapping meridians to vertical lines and latitudes to horizontal lines. Although it results in a somewhat distorted image of the Earth, \textit{Plate Carree} is widely used across various fields due to its simple relationship between pixel position and coordinates on a map.
 
 \begin{figure}[!ht]
     \centering
-    \includegraphics[width=.5\textwidth]{figures/preety map.png}
+    \includegraphics[width=.5\textwidth]{figures/cartophy_map.pdf}
     \caption{Resulting map after processing}
     \label{fig:pretty_map}
 \end{figure}
 
 \section{Results} \label{results}
-[***Results presentation, comparison with other models/benchmark scores; visualisation and analysis; don't forget to mention what is baseline regressor [NAIVE]***]
-
 In this section, we will present the results of our work by comparing the forecasting skill of our models, based on different criteria we decided would reflect how well the solutions predict the weather.
 
-For the purpose of achieving a singular score for a given solution, we introduced the so-called $\Tilde{\mathcal{L}}_{RMSE}$ metric. It is the mean of RMSE for each normalized (standardized) predicted feature and its target. It helps us easily approximate model performance and perform analysis in further sections.
+As previously mentioned in Chapter \ref{chap:neighbors}, the utilization of additional neighbors was found to significantly increase processing time while providing only minimal improvement in prediction quality. Therefore, we excluded the models with additional neighbors from our analysis. Additionally, it is important to note that due to the results of our hyperparameter optimization (Chapter \ref{chap:best_params}), both regression models will undergo analysis with Ridge regularization, and lightGBM was selected as the Gradient Boosting solution.
 
-\subsection{GNN Model evaluation}
+Lastly, analyzed GNN architecture leverage edge connections within grid boxes with a radius equal to 2, as this configuration demonstrated notable performance in our tests.
 
 \begin{figure}
     \centering
     \includegraphics[scale=0.56]{figures/gnn_sample_pred.pdf}
-    \caption{GNN model: one sample prediction}
+    \caption{GNN model: one sample prediction: true value (left column), prediction (middle column), absolute prediciton errror (right column).}
     \label{fig:gnn_pred}
 \end{figure}
 
+\subsection{Visual GNN Model evaluation}
 As can be seen in Figure \ref{fig:gnn_pred}, our GNN model predicts the general weather trend quite well. The shapes of the weather feature maps are similar, which means that the state of the weather in one place in relation to other places is well reflected in the predictions.
-[*** TODO write something that it predicts general weather trend/context very well ***]
-
-% \begin{table}[ht]
-% \centering
-% \caption{Comparison of Model Scores for Each Weather Feature}
-% \label{tab:model_scores}
-% \begin{tabular}{lccccc}
-% \toprule
-% \textbf{Feature} & \textbf{Metric} & \textbf{Our Model} & \textbf{TIGGE} \\
-% \midrule
-% \multirow{2}{*}{t2m} & RMSE & 1.566 & \textbf{1.121} \\
-%                      & MAE  & 1.175 & \textbf{0.816}\\
-% \midrule
-% \multirow{2}{*}{sp}  & RMSE & \textbf{1.229} & 3.240  \\
-%                      & MAE  & \textbf{0.899} & 1.709  \\
-% \midrule
-% \multirow{2}{*}{tcc} & RMSE & 0.291 & \textbf{0.227}  \\
-%                      & MAE  & 0.195 & \textbf{0.135} \\
-% \midrule
-% \multirow{2}{*}{u10} & RMSE & 1.145 & \textbf{0.654}  \\
-%                      & MAE  & 0.830 & \textbf{0.472}  \\
-% \midrule
-% \multirow{2}{*}{v10} & RMSE & 1.136 & \textbf{0.650}  \\
-%                      & MAE  & 0.820 & \textbf{0.470} \\
-% \midrule
-% \multirow{2}{*}{tp}  & RMSE & \textbf{0.295} & 0.313  \\
-%                      & MAE  & \textbf{0.078} & 0.080 \\
-% \bottomrule
-% \end{tabular}
-% \end{table}
-
-When we compare our model with the prediction from the TIGGE dataset, as presented in Table \ref{tab:model_scores}, we can notice that the NWP model performs better or similar on all selected features, with the exception of surface pressure, where our solution attains much better results.
 
 \subsection{Comparison between all models}
-[***TODO - Description, analysis?***]
+In Tables \ref{tab:rmse} and \ref{tab:mae} we present the results for the best versions of our models, with a forecasting horizon of 1 step ahead, and input sequence length set to 5, as it seemed like a good fit when experimenting on the validation set. Apart from the previously mentioned baselines and models, we have incorporated the NAIVE solution. It simply predicts that the weather state at a given grid box would be identical to the average value from this grid box observed across the entire training set, as a way to compare against something extremely naive: $ \hat{\mathbf{Y}}_{NAIVE} = \overline{\mathbf{Y}}_{train}$.
 
-% \begin{table}
-% \caption{RMSE Results; bold are best overall, underlined are best among our models}
-% \label{tab:rmse}
-% \begin{tabular}{lrrrrrr}
-% \toprule
-%  & t2m & sp & tcc & u10 & v10 & tp \\
-% \midrule
-% simple linear regressor & 2.124 & 1.428 & 0.295 & 1.562 & 1.530 & 0.302 \\
-% trans & \underline{1.566} & \underline{\textbf{1.229}} & \underline{0.281} & \underline{1.145} & \underline{1.136} & 0.295 \\
-% tigge & \textbf{1.122} & 3.241 & \textbf{0.228} & \textbf{0.654} & \textbf{0.650} & 0.314 \\
-% linear regressor & 1.960 & 1.340 & 0.291 & 1.499 & 1.493 & 0.296 \\
-% unet & 1.698 & 1.530 & 0.289 & 1.226 & 1.228 & 0.298 \\
-% grad booster & 1.871 & 1.499 & 0.286 & 1.467 & 1.453 & \underline{\textbf{0.293}} \\
-% baseline regressor & 9.122 & 8.287 & 0.360 & 2.910 & 2.672 & 0.312 \\
-% \bottomrule
-% \end{tabular}
-% \end{table}
+TIGGE is clearly the best at predicting most features -- this is entirely expected, as it has access to much more resources and variables, and our goal was to find how close we could get to its forecasting ability. One exception was surface pressure, where the NWP model struggled to achieve good results in comparison to even the baselines.
 
-% \begin{table}
-% \caption{MAE Results; bold are best overall, underlined are best among our models}
-% \label{tab:mae}
-% \begin{tabular}{lrrrrrr}
-% \toprule
-%  & t2m & sp & tcc & u10 & v10 & tp \\
-% \midrule
-% simple linear regressor & 1.585 & 1.041 & 0.242 & 1.148 & 1.132 & 0.116 \\
-% trans & \underline{1.175} & \underline{\textbf{0.899}} & 0.195 & \underline{0.830} & \underline{0.820} & \underline{\textbf{0.078}} \\
-% tigge & \textbf{0.816} & 1.710 & \textbf{0.135} & \textbf{0.472} & \textbf{0.470} & 0.081 \\
-% linear regressor & 1.479 & 0.973 & 0.235 & 1.116 & 1.101 & 0.115 \\
-% unet & 1.263 & 1.168 & \underline{0.191} & 0.933 & 0.912 & 0.081 \\
-% grad booster & 1.370 & 1.100 & 0.229 & 1.082 & 1.074 & 0.105 \\
-% baseline regressor & 7.604 & 6.517 & 0.324 & 2.267 & 2.132 & 0.123 \\
-% \bottomrule
-% \end{tabular}
-% \end{table}
+In terms of the neural networks, they were the best MLWP methods among the ones we tested, and achieved -- in our opinion -- respectable performance. They lie somewhere in the middle between the baselines and the topline on almost all features. The GNN model performed slightly better, but it is important to note that it took longer to train and predict than the U-net.
+
+Total cloud cover proved to be somewhat challenging, with all models attaining similar RMSE. Total precipitation seemed to be very difficult to predict, as all models achieved similar performance, with even the NAIVE solution performing almost on par with other methods. This difficulty is in line with other publications that have dealt with this problem, as described in Sections \ref{sec:metnet} and \ref{sec:fourcastnet}.
+
+In general, we are very happy to see these results. With just a fraction of computational power, we are able to achieve performance that is reasonably close to modern NWP methods. In terms of the absolute values, with the mean absolute error of 1.188 degrees Celsius, we can predict the temperature close enough that it does not raise issues, as a such a difference is almost impossible to feel -- the only problem arising around 0 degrees, where we could forecast it to be above freezing, when it in fact could be icy on the roads. The errors on other features also fall in this category of ``difficult to feel'', meaning that our predictions are accurate on the human scale. 
 
 \begin{table}
 \centering
-\caption{RMSE Results}
+\caption{RMSE Results, bold is best overall, underlined is best ML model}
 \label{tab:rmse}
 \begin{tabular}{lrrrrrr}
 \toprule
  & t2m & sp & tcc & u10 & v10 & tp \\
 \midrule
-TIGGE & 1.122 & 3.241 & 0.228 & 0.654 & 0.650 & 0.314 \\
-GNN & 1.590 & 1.176 & 0.278 & 1.120 & 1.101 & 0.305 \\
-UNET & 1.692 & 1.323 & 0.287 & 1.309 & 1.272 & 0.305 \\
-GB & 1.797 & 1.449 & 0.286 & 1.462 & 1.451 & 0.293 \\
+TIGGE & \textbf{1.122} & 3.241 & \textbf{0.228} & \textbf{0.654} & \textbf{0.650} & 0.314 \\
+GNN & \underline{1.590} & \underline{\textbf{1.176}} & \underline{0.278} & \underline{1.120} & \underline{1.101} & 0.305 \\
+U-NET & 1.692 & 1.323 & 0.287 & 1.309 & 1.272 & 0.305 \\
+GB & 1.797 & 1.449 & 0.286 & 1.462 & 1.451 & \underline{\textbf{0.293}} \\
 LR & 2.023 & 1.355 & 0.292 & 1.502 & 1.494 & 0.296 \\
 SLR & 2.123 & 1.427 & 0.295 & 1.561 & 1.529 & 0.302 \\
 NAIVE & 9.125 & 8.286 & 0.360 & 2.909 & 2.672 & 0.312 \\
@@ -305,15 +209,15 @@ NAIVE & 9.125 & 8.286 & 0.360 & 2.909 & 2.672 & 0.312 \\
 
 \begin{table}
 \centering
-\caption{MAE Results}
+\caption{MAE Results, bold is best overall, underlined is best ML model}
 \label{tab:mae}
 \begin{tabular}{lrrrrrr}
 \toprule
  & t2m & sp & tcc & u10 & v10 & tp \\
 \midrule
-TIGGE & 0.816 & 1.710 & 0.135 & 0.472 & 0.470 & 0.081 \\
-GNN & 1.188 & 0.880 & 0.186 & 0.820 & 0.807 & 0.081 \\
-UNET & 1.270 & 0.994 & 0.194 & 0.977 & 0.937 & 0.082 \\
+TIGGE & \textbf{0.816} & 1.710 & \textbf{0.135} & \textbf{0.472} & \textbf{0.470} & \textbf{0.081} \\
+GNN & \underline{1.188} & \underline{\textbf{0.880}} & \underline{0.186} & \underline{0.820} & \underline{0.807} & \underline{\textbf{0.081}} \\
+U-NET & 1.270 & 0.994 & 0.194 & 0.977 & 0.937 & 0.082 \\
 GB & 1.319 & 1.062 & 0.228 & 1.078 & 1.071 & 0.104 \\
 LR & 1.530 & 0.990 & 0.237 & 1.117 & 1.103 & 0.114 \\
 SLR & 1.584 & 1.041 & 0.242 & 1.147 & 1.132 & 0.116 \\
@@ -325,14 +229,13 @@ NAIVE & 7.608 & 6.517 & 0.324 & 2.267 & 2.131 & 0.123 \\
 
 
 \section{Analysis}\label{chap:analysis}
-[*** Don't forget to mention the specifics related to linear regression and gradient boosting -- after HPO we've chosen ridge and lightGBM since they outperform others***]
 To attain optimal models from our implementation, we conducted a multi-step analysis of parameters. We put emphasis on combining the advantages of high performance and efficient computation times. Given the nature of our project, there were instances where we had to compromise performance to achieve more sustainable computation times, more applicable in the mobile application use case. The analysis and comparisons conducted in this section are grounded in the previously mentioned $\Tilde{\mathcal{L}}_{RMSE}$ metric.
 
 \FloatBarrier
 
-\subsection{Input sequence}
-The metrics, illustrated in Figure \ref{fig:data-sequence-plot} and \ref{fig:not-normalized-data-sequence-plot}, are computed for the \emph{Number of Predicted Steps} equal to $1$.
-The changes in the $\tilde{\mathcal{L}}_{RMSE}$ metric concerning the \emph{Input Sequence Length} are as expected: more complicated models outperform the simpler ones, and as the length increases, the predictions improve. An interesting observation from this plot is that, despite the neural networks' scores improving with more input steps, the $\tilde{\mathcal{L}}_{RMSE}$ at \emph{Sequence Length} equal to $9$ is at a similar level as the metric for two input steps, or even worse, as seen in the plot for \emph{U-Net}.
+\subsection{Input sequence} \label{sec:input-sequence}
+The metrics, illustrated in Figure \ref{fig:data-sequence-plot} and \ref{fig:not-normalized-data-sequence-plot}, are computed for the forecasting horizon equal to $1$ step -- 6 hours ahead.
+The changes in the $\tilde{\mathcal{L}}_{RMSE}$ metric concerning the Input Sequence Length are as expected: more complicated models outperform the simpler ones, and as the length increases, the predictions improve. An interesting observation from this plot is that, despite the neural networks' scores improving with more input steps, the $\tilde{\mathcal{L}}_{RMSE}$ at Sequence Length equal to $9$ is at a similar level as the metric for two input steps, or even worse, as seen in the plot for U-Net.
 
 \FloatBarrier
 
@@ -343,13 +246,15 @@ The changes in the $\tilde{\mathcal{L}}_{RMSE}$ metric concerning the \emph{Inpu
     \label{fig:data-sequence-plot}
 \end{figure}
 
-When it comes to plots for \emph{t2m} and \emph{u10}, \emph{v10} [*ja bym użył pełnej nazwy a nie skrótu*] wind components, the trend of more complicated models providing better scores continues. However, the plots for other features aren't as uncomplicated. The most drastic anomalies occurred when evaluating \emph{tp} and \emph{tcc}. One conclusion is that the total precipitation feature, historically challenging to predict, performs with fewer anomalies on the simpler models due to their straightforward approach to predictions. The same observation might hold true for the total cloud cover feature. Another unanticipated aspect is the poor performance of \emph{U-Net} when predicting surface pressure. This feature is not inherently difficult to predict, nor does it exhibit unusual qualities, making it challenging to pinpoint why \emph{U-Net} performs in such a manner.
+\FloatBarrier
+
+When it comes to plots illustrated in Figure \ref{fig:not-normalized-data-sequence-plot} -- for temperature 2 meters above ground and u10, v10 wind components, the trend of more complicated models providing better scores continues. However, the plots for other features are not as uncomplicated. The most drastic anomalies occurred when evaluating total precipitation and total cloud cover. One conclusion is that the total precipitation feature, historically challenging to predict, performs with fewer anomalies on the simpler models due to their straightforward approach to predictions. The same observation might hold true for the total cloud cover feature. Another unanticipated aspect is the poor performance of U-Net when predicting surface pressure. This feature is not inherently difficult to predict, nor does it exhibit unusual qualities, making it challenging to pinpoint why U-Net performs in such a manner.
 We should also consider the possibility that some features might be more difficult to predict within our testing time period, and if we used a different time frame, those metrics could change.
 
 \begin{figure}[!ht]
     \centering
     \includegraphics[width=.99\textwidth]{figures/not_normalized_data_sequence.pdf}
-    \caption{Not normalized RMSE with respect to Input Sequence Length}
+    \caption{RMSE with respect to Input Sequence Length}
     \label{fig:not-normalized-data-sequence-plot}
 \end{figure}
 
@@ -358,7 +263,7 @@ We should also consider the possibility that some features might be more difficu
 \subsection{Forecasting horizon}
 It is worth noting that in the following analysis for the baseline solutions, the forecasting horizon evaluation was carried out using autoregression, while the neural networks predicted several time steps with a single propagation. Such a decision was supported by a brief analysis confirming that in our case both the GNN model and the U-net, trained on the objective function with a single forecasting step, gave worse results during autoregressive evaluation than the model trained to predict several steps of the future at one time.
 
-When it comes to the combined RMSE metric, as presented in Figure \ref{fig:data-fh-plot}, all models followed a similar trend, with the error increasing with every step. The pattern of more complicated models outperforming the simpler ones still holds true, but it gets more complicated with more steps predicted. The neural networks are better at the beginning, with the CNN getting outperformed by two baselines at 4 steps, and the GNN being beaten by linear regression only by 8 steps. It is also quite interesting that simple linear regression starts outperforming the substantially more advanced CNN and gradient boosting methods around 8 steps.   
+When it comes to the $\tilde{\mathcal{L}}_{RMSE}$ metric, as presented in Figure \ref{fig:data-fh-plot}, all models followed a similar trend, with the error increasing with every step. The pattern of more complicated models outperforming the simpler ones still holds true, but it gets more complicated with more steps predicted. The neural networks are better at the beginning, with the CNN getting outperformed by two baselines at 4 steps, and the GNN being beaten by linear regression only by 8 steps. It is also quite interesting that simple linear regression starts outperforming the substantially more advanced CNN and gradient boosting methods around 8 steps.   
 \begin{figure}[!ht]
     \centering
     \includegraphics[scale=0.5]{figures/data_fh.pdf}
@@ -366,14 +271,14 @@ When it comes to the combined RMSE metric, as presented in Figure \ref{fig:data-
     \label{fig:data-fh-plot}
 \end{figure}
 
-If we look at the RMSE of all features (not normalized) in Figure \ref{fig:not-normalized-data-fh-plot}, we see some interesting results. The plots for the wind speeds are as expected, with advanced methods being better until about 6 predicted steps. Surface pressure seems to degrade more steeply with all models, and complex solutions start getting worse than linear regression at around 4.
+If we look at the RMSE of all features in Figure \ref{fig:not-normalized-data-fh-plot}, we see some interesting results. The plots for the wind speeds are as expected, with advanced methods being better until about 6 predicted steps. Surface pressure seems to degrade more steeply with all models, and complex solutions start getting worse than linear regression at around 4.
 
-However, the neural networks present interesting behaviour in the other features. U-net seems to degrade very quickly when predicting temperature, with a large spike of error between 2 and 4 steps, and then contiunues to worsen gradually. Both networks deteriorate quickly for total cloud cover, changing from the best at 1 step to comfortably the worst at 3. The same stuation happened with total precipitation, but even quicker -- a severe degeneration of performace happened at 2 steps. A quite interesting improvement is then found for both solutions, where U-net attains better performance in steps 5-9 in comparison to 4. We believe these issues are caused by overfitting. [***MAYBE SOMETHING ELSE?***]
+However, the neural networks present interesting behaviour in the other features. U-net seems to degrade very quickly when predicting temperature, with a large spike of error between 2 and 4 steps, and then contiunues to worsen gradually. Both networks deteriorate quickly for total cloud cover, changing from the best at 1 step to comfortably the worst at 3. The same stuation happened with total precipitation, but even quicker -- a severe degeneration of performace happened at 2 steps. A quite interesting improvement is then found for both solutions, where U-net attains better performance in steps 5-9 in comparison to 4. We believe these issues are caused by overfitting.
 
 \begin{figure}[!ht]
     \centering
     \includegraphics[width=.99\textwidth]{figures/not_normalized_data_fh.pdf}
-    \caption{RMSE of not normalized features with respect to the Number of Predicted Steps}
+    \caption{RMSE features with respect to the Number of Predicted Steps}
     \label{fig:not-normalized-data-fh-plot}
 \end{figure}
 
@@ -423,7 +328,6 @@ As expected, the more complex the method, the longer the computation time. The l
     \label{fig:nets-computation-times}
   \end{subfigure}
 \end{figure}
-[*** Hypothesis: cuda libraries excellently perform while working with convolutional operations, although the message-passing algorithm is not as efficient. ***]
 
 \FloatBarrier
 
@@ -441,28 +345,29 @@ This could mean that the more extreme weather conditions during the May-August p
 
 \FloatBarrier
 
-\subsection{Spatial errors}
-Description of the plots
 \begin{figure}
     \centering
-    \includegraphics[width=.99\textwidth]{figures/error_maps.pdf}
+    \includegraphics[scale=0.4]{figures/error_maps.pdf}
     \caption{Average prediction and target difference}
     \label{fig:error-maps}
 \end{figure}
 
 \FloatBarrier
 
-\subsection{Conclusions}
+\subsection{Spatial errors}
+In Figure \ref{fig:error-maps} we present the average difference between the prediction and the target at every grid box. For neural networks, the error was more evenly distributed among all grid boxes. It is interesting to see some regions of similar error for other methods -- for example in surface pressure and total cloud cover, where we can see the shape of the areas are close. For total precipitation, in all models there is an area of increased error around the area of Kraków and to the north-east of it.
 
+
+
+\FloatBarrier
 
 \section{Experiments}\label{chap:exp}
-[***THIS NEEDS A REWRITE***]
-We have performed various experiments that helped us create our models. We have extensively tested various paramaters, such as what are the best $s$ and $h$ or what are the best hyperparameters for each model. We have also checked the error and prediction correlations between the models, which could indicate a possible improvement by combining the predictions of negatively correlated models. Additionally, we wanted to see if the time of the year will have an impact on the predictions -- if spring or fall are less prone to errors, since they have more "average" or "mild" weather than winter or summer, for example.
-
-Finally, we wanted to compare the overall performance of the models, and determine their overall weather prediction skill.
+After testing the performance of our models, we wanted to see how their predictions relate to each other. We tested the correlation of error, and looked into a possible combination of our best model with the topline.
 
 \subsection{Models correlation}
-[TODO: Analyze and describe Figures: \ref{fig:err-cor}]
+In Figure \ref{fig:err-cor} we present the correlation between the errors on each feature between our models. The NAIVE model is mostly uncorrelated to any other model, which is expected. Most other models, however, seem to be strongly correlated. The GNN model seems to be the least correlated, giving the lowest scores with the baselines, but is the most correlated to the U-net -- and is also the model most correlated to the CNN model itself. Apart from that, both linear regression models are very well correlated, whilst all models are extremely correlated for total precipitation, which only further confirms it is difficult to predict, since all models make similar errors.
+
+No models are correlated negatively, which means we can not improve their performance by averaging their predictions, which we hoped could be the case.
 
 \begin{figure}[!ht]
     \centering
@@ -471,7 +376,7 @@ Finally, we wanted to compare the overall performance of the models, and determi
     \label{fig:err-cor}
 \end{figure}
 
-\subsection{Combining our best model with topline}
+\subsection{Combining best model with topline}
 As a final experiment, we wanted to see if it is possible to use our GNN model to improve the performance of TIGGE. We analysed a simple weighted average of the predictions from both methods:
 \[
     \alpha \in [0,1]: \mathbf{\hat{Y}} = \alpha \mathbf{\hat{Y}}_{GNN} + (1 - \alpha) \mathbf{\hat{Y}}_{TIGGE} 
@@ -486,15 +391,15 @@ The results, presented in Tables \ref{tab:rmse_alpha} and \ref{tab:mae_alpha}, a
         \midrule
         0.0 & 1.122 & 3.241 & 0.228 & 0.654 & 0.65 & 0.314 \\
         0.1 & 1.047 & 2.917 & 0.216 & 0.618 & 0.613 & 0.312 \\
-        0.2 & 0.996 & 2.599 & 0.209 & 0.602 & 0.595 & 0.31 \\
-        0.3 & 0.972 & 2.29 & 0.204 & 0.607 & 0.599 & 0.307 \\
-        0.4 & 0.978 & 1.992 & 0.204 & 0.634 & 0.625 & 0.305 \\
+        0.2 & 0.996 & 2.599 & 0.209 & \textbf{0.602} & \textbf{0.595} & 0.31 \\
+        0.3 & \textbf{0.972} & 2.29 & \textbf{0.204} & 0.607 & 0.599 & 0.307 \\
+        0.4 & 0.978 & 1.992 & \textbf{0.204} & 0.634 & 0.625 & 0.305 \\
         0.5 & 1.013 & 1.713 & 0.208 & 0.679 & 0.67 & 0.304 \\
         0.6 & 1.074 & 1.462 & 0.216 & 0.739 & 0.731 & 0.302 \\
         0.7 & 1.157 & 1.258 & 0.228 & 0.811 & 0.803 & 0.3 \\
         0.8 & 1.257 & 1.125 & 0.242 & 0.892 & 0.885 & 0.298 \\
-        0.9 & 1.372 & 1.09 & 0.259 & 0.98 & 0.974 & 0.297 \\
-        1.0 & 1.497 & 1.162 & 0.278 & 1.073 & 1.067 & 0.295 \\
+        0.9 & 1.372 & \textbf{1.09} & 0.259 & 0.98 & 0.974 & 0.297 \\
+        1.0 & 1.497 & 1.162 & 0.278 & 1.073 & 1.067 & \textbf{0.295} \\
         \bottomrule
     \end{tabular}
     \caption{RMSE values for different $\alpha$ values}
@@ -509,15 +414,15 @@ The results, presented in Tables \ref{tab:rmse_alpha} and \ref{tab:mae_alpha}, a
         \midrule
         0.0 & 0.816 & 1.71 & 0.135 & 0.472 & 0.47 & 0.081 \\
         0.1 & 0.763 & 1.548 & 0.131 & 0.446 & 0.444 & 0.08 \\
-        0.2 & 0.729 & 1.4 & 0.13 & 0.437 & 0.434 & 0.078 \\
-        0.3 & 0.718 & 1.264 & 0.131 & 0.445 & 0.44 & 0.078 \\
+        0.2 & 0.729 & 1.4 & \textbf{0.13} & \textbf{0.437} & \textbf{0.434} & 0.078 \\
+        0.3 & \textbf{0.718} & 1.264 & 0.131 & 0.445 & 0.44 & 0.078 \\
         0.4 & 0.728 & 1.142 & 0.134 & 0.466 & 0.462 & 0.077 \\
-        0.5 & 0.757 & 1.036 & 0.139 & 0.5 & 0.495 & 0.076 \\
-        0.6 & 0.803 & 0.946 & 0.146 & 0.543 & 0.539 & 0.076 \\
-        0.7 & 0.863 & 0.876 & 0.154 & 0.595 & 0.59 & 0.076 \\
-        0.8 & 0.936 & 0.831 & 0.164 & 0.653 & 0.648 & 0.076 \\
-        0.9 & 1.02 & 0.819 & 0.174 & 0.716 & 0.711 & 0.076 \\
-        1.0 & 1.112 & 0.867 & 0.186 & 0.783 & 0.779 & 0.076 \\
+        0.5 & 0.757 & 1.036 & 0.139 & 0.5 & 0.495 & \textbf{0.076} \\
+        0.6 & 0.803 & 0.946 & 0.146 & 0.543 & 0.539 & \textbf{0.076} \\
+        0.7 & 0.863 & 0.876 & 0.154 & 0.595 & 0.59 & \textbf{0.076} \\
+        0.8 & 0.936 & 0.831 & 0.164 & 0.653 & 0.648 & \textbf{0.076} \\
+        0.9 & 1.02 & \textbf{0.819} & 0.174 & 0.716 & 0.711 & \textbf{0.076} \\
+        1.0 & 1.112 & 0.867 & 0.186 & 0.783 & 0.779 & \textbf{0.076} \\
         \bottomrule
     \end{tabular}
     \caption{MAE values for different $\alpha$ values}
@@ -531,25 +436,21 @@ The results, presented in Tables \ref{tab:rmse_alpha} and \ref{tab:mae_alpha}, a
     \label{fig:alpha-plot}
 \end{figure}
 
-\section{Practical details}
-Explain training, evaluating and forecasting details and methods -- e.g. spatial mapping of neural nets; normalization and regularization techniques (training was stable therefore we didn't incorporated those, although there was experiments with gradient clipping and dropout), used metrics and objectives, post processing, batch size, activation function, computation time, software and hardware stack, no. of parameters in neural networks. Describe baseline regressor and trainer functionality; 
+\section{Practical details -- neural networks}
+When training our networks, we have decided to use L1 Loss. Originally, we used MSE Loss, but after some experimenting we determined that L1 is more stable and achieves better results. We set the number of training epochs to 1000, and used early stopping and learning rate adjustment callbacks. When the training reached the end of the scheduled 1000 epochs, the possible improvement that could be deduced from the loss plot was so small that we decided that training further than 1000 epochs is not needed. We have used a batch size of 8 and ReLU activation function.
 
-\subsection{Baselines}
-TODO: Describe the details of training and evaluating the baselines
+As we mentioned in Section \ref{spatialmapping}, our networks utilised a larger area than the other methods due to the fact that we wanted to minimize border effects. This meant that when computing loss, we also used SpatialMapping to cut out the area we wanted to make predictions on later, and calculate loss on that.
 
-\subsection{Neural Networks}
-When training our networks, we have decided to use L1 Loss. Originally, we used MSE Loss, but after some experimenting we determined that L1 is more stable and achieves better results. We set the number of training epochs to 1000, and used early stopping and learning rate adjustment callbacks. When the training reached the end of the scheduled 1000 epochs, the possible improvement that could be deduced from the loss plot was so small that we decided that training further than 1000 epochs is not needed.
+We experimented with various regularization techniques, such as gradient clipping, weight decay, batch normalization and dropout, but they did not provide any benefits when we tested them, while some increased training time. This meant we did not use them. Our assumptions regarding the limited effectiveness of regularization techniques came from the fact that our neural models and in particular, the graph network were relatively shallow, and in addition, we did not observe much overfitting.
 
-As we mentioned in Section \ref{spatialmapping}, our networks utilised a larger area than the other methods due to the fact that we wanted to minimise border effects. This meant that when computing loss, we also used SpatialMapping to cut out the area we wanted to make predictions on later, and calculate loss on that.
+Besides the standard L1 and L2 losses, we have also experimented with less conventional cost functions like HuberLoss and LogCosh. The training process yielded comparable performance obtaining slightly worse results than mean absolute error.
 
-We experimented with various techniques, such as gradient clipping, regularization, and dropout, but they did not provide any benefits when we tested them, while some increased training time. This meant we did not use them.
+\paragraph{U-net} \mbox{} \\
+\noindent After experimenting with the architecture, we decided that the one presented in Figure \ref{fig:unet} was the most well balanced, providing good results in relatively short time. The number of neurons in the first layer ($u$) we determined was the most balanced was 16.
 
-\paragraph{U-net}
-After experimenting with the architecture, we decided that the one presented in Figure \ref{fig:unet} was the most well balanced, providing good results in relatively short time. The number of neurons in the first layer ($u$) we determined was the most balanced was 16.
+\paragraph{GNN} \mbox{} \\
+\noindent We tested with various solutions involving different numbers of layers and regularization techniques. Surprisingly, a relatively shallow network consistently outperformed all other solutions. As a result, as previously mentioned, there was no need to introduce any regularization techniques except LayerNorm, as overfitting was not observed on all features.
 
-\paragraph{GNN}
-We experimented with various solutions involving different numbers of layers and regularization techniques. Surprisingly, a relatively shallow network consistently outperformed all other solutions. As a result, there was no need to introduce any regularization techniques except LayerNorm, as overfitting was not observed.
+As previously mentioned, we have tested multiple graph cells including: CGConv \cite{PhysRevLett.120.145301}, GCNConv \cite{kipf2017semisupervised}, GENConv \cite{li2020deepergcn}, PDNConv \cite{rozemberczki2021pathfinder}, GATConv \cite{veličković2018graph}. We did not perform any analysis regarding the performance of every one of them since TransformerConv notably outperforms others.
 
-\section{Failures}
-In this chapter we represent methods that we investigated through entire research process and which did not improve or degenerate performance. E.g. examined regularization techniques, loss functions, tested graph cells, A3T-GCN \cite{zhu2020a3tgcn} from PyTorch Geometric Temporal \cite{rozemberczki2021pytorch}? Just an idea
-Napiszmy to wszytsko w sekcji wyżej, i po prostu napisać, że nie wyszło
+An additional interesting approach that unfortunately was unsuccessful was related to testing A3T-GCN architecture \cite{zhu2020a3tgcn} from PyTorch Geometric Temporal framework \cite{rozemberczki2021pytorch}. This engaging solution combines graph convolutional and recurrent networks with an attention mechanism. It provided promising results, nevertheless, at a certain stage of the research, we stopped testing it because its implementation does not support edge features, which are crucial in our task.
